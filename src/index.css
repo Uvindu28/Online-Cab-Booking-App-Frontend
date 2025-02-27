@@ -1,0 +1,25 @@
+@import "tailwindcss";
+/* Webkit browsers (Chrome, Safari, newer versions of Edge) */
+::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #000000;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #F9C80E;
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(249, 200, 14, 0.8);
+  }
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #F9C80E #000000;
+  }
+  /* For Edge and Internet Explorer */
+  body {
+    -ms-overflow-style: none;
+    scrollbar-color: #F9C80E #000000;
+  }
