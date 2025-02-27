@@ -16,12 +16,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci  # Faster & ensures package-lock consistency
+
+      - name: Verify React Scripts
+        run: npx react-scripts --version  # Debugging step
 
       - name: Build React App
-        run: npm run build
+        run: npm run build && mv build mega-city-cab-frontend  # Rename output folder
 
       - name: Log into Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
