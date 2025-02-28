@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "react-scripts build && mv build mega-city-cab-frontend",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
