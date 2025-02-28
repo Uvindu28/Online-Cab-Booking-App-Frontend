@@ -5,10 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "react-scripts start",
-    "build": "react-scripts build && mv build mega-city-cab-frontend",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
