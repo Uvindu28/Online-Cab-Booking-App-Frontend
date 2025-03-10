@@ -40,7 +40,7 @@ const Login = () => {
       // Navigate based on role
       switch (role) {
         case "ROLE_ADMIN":
-          navigate("/adminDashboard");
+          navigate("/admin/dashboard");
           break;
         case "ROLE_CUSTOMER":
           navigate("/cusDashboard");

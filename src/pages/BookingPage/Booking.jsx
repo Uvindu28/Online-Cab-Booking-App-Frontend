@@ -1,107 +1,185 @@
 import { useEffect, useState } from "react";
-import { CheckCircle, XCircle, MapPin, Filter } from "lucide-react";
+import { MapPin, Filter, Search } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
+import Header from "../../components/Header";
 const CabSelection = () => {
   const [selectedCab, setSelectedCab] = useState(null);
   const [cars, setCars] = useState([]);
-  const [filters, setFilters] = useState({ category: "", available: "", location: "" });
+  const [filters, setFilters] = useState({
+    category: "",
+    available: "",
+    location: "",
+  });
   const navigate = useNavigate();
-
   useEffect(() => {
     fetchAllCars();
   }, []);
-
   const fetchAllCars = async () => {
     try {
-      const response = await axios.get("http://localhost:8080/all/getallCars");
+      const response = await axios.get("http://localhost:8080/all/getallcars");
       setCars(response.data);
     } catch (error) {
       console.error("Error fetching cars", error.response || error.message);
     }
   };
-
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+    setFilters({
+      ...filters,
+      [e.target.name]: e.target.value,
+    });
   };
-
   const filteredCars = cars.filter((car) => {
     return (
       (filters.category === "" || car.category === filters.category) &&
-      (filters.available === "" || (filters.available === "true" && car.available) || (filters.available === "false" && !car.available)) &&
+      (filters.available === "" ||
+        (filters.available === "true" && car.available) ||
+        (filters.available === "false" && !car.available)) &&
       (filters.location === "" || car.location === filters.location)
     );
   });
-
   const handleBookNow = (car) => {
     if (String(car.available).toLowerCase() === "true") {
       setSelectedCab(car);
-      navigate("/billing", { state: { car } });
+      navigate("/billing", {
+        state: {
+          car,
+        },
+      });
     }
   };
-
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-6">
-      <h2 className="text-4xl font-bold text-center text-gray-800 mb-6">Select Your Cab</h2>
-
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6 flex flex-wrap gap-4 justify-center">
-        <div className="flex items-center space-x-2">
-          <Filter className="text-gray-500 w-5 h-5" />
-          <h3 className="text-lg font-semibold text-gray-700">Filters</h3>
-        </div>
-
-        <select name="category" value={filters.category} onChange={handleFilterChange} className="border p-2 rounded-md">
-          <option value="">All Categories</option>
-          <option value="Sedan">Sedan</option>
-          <option value="SUV">SUV</option>
-          <option value="Electric">Electric</option>
-        </select>
-
-        <select name="available" value={filters.available} onChange={handleFilterChange} className="border p-2 rounded-md">
-          <option value="">All Availability</option>
-          <option value="true">Available</option>
-          <option value="false">Not Available</option>
-        </select>
-
-        <select name="location" value={filters.location} onChange={handleFilterChange} className="border p-2 rounded-md">
-          <option value="">All Locations</option>
-          <option value="Colombo">Colombo</option>
-          <option value="Kandy">Kandy</option>
-          <option value="Galle">Galle</option>
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCars.length > 0 ? (
-          filteredCars.map((car) => (
-            <div key={car.carId} className="bg-white p-6 rounded-lg shadow-lg transform transition duration-500 hover:scale-105 flex flex-col items-center border border-gray-200">
-              <img src={car.carImageUrl} alt={car.model} className="w-40 h-24 object-cover rounded-md mb-4 shadow-sm" />
-              <h3 className="text-2xl font-semibold text-gray-900 mb-2">{car.model}</h3>
-              <p className="text-gray-600">Category: {car.category}</p>
-              <p className="text-gray-600">Seats: {car.numberOfSeats}</p>
-              <p className="text-gray-600 flex items-center"> <MapPin className="w-4 h-4 mr-1 text-gray-500" /> {car.location}</p>
-              <p className={`text-lg font-medium mt-2 flex items-center ${car.available ? "text-green-500" : "text-red-500"}`}>
-                {car.available ? <CheckCircle className="w-5 h-5 mr-2" /> : <XCircle className="w-5 h-5 mr-2" />}
-                {car.available ? "Available" : "Not Available"}
-              </p>
-              <button
-                disabled={!car.available}
-                onClick={() => handleBookNow(car)}
-                className={`px-6 py-3 mt-4 text-white font-semibold rounded-md transition-all shadow-md ${
-                  car.available ? "bg-emerald-500 hover:bg-emerald-600" : "bg-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {car.available ? "Book Now" : "Unavailable"}
-              </button>
+    <div className="min-h-screen bg-white">
+      <Header />
+      {/* Hero Section */}
+      <div className="relative pt-20 pb-8 px-4 mt-15">
+        <div className="container mx-auto text-center">
+          <h1 className="text-4xl font-bold mb-3 text-gray-900">
+            Find Your Perfect Ride
+          </h1>
+          <p className="text-gray-600 text-base mb-6 max-w-2xl mx-auto">
+            Choose from our wide selection of premium vehicles for your journey
+          </p>
+          {/* Search Bar */}
+          <div className="max-w-xl mx-auto relative">
+            <div className="relative">
+              <Search className="absolute left-4 top-3 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Where would you like to go?"
+                className="w-full pl-10 pr-4 py-2.5 rounded-full border border-gray-200 focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all text-sm"
+              />
             </div>
-          ))
-        ) : (
-          <p className="text-center text-lg text-gray-600 col-span-full">No cars found with selected filters.</p>
-        )}
+          </div>
+        </div>
+      </div>
+      {/* Filters Section */}
+      <div className="container mx-auto px-4 mb-8">
+        <div className="bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex flex-wrap gap-4 justify-center items-center">
+            <div className="flex items-center space-x-2">
+              <Filter className="text-yellow-500 w-4 h-4" />
+              <h3 className="text-sm font-semibold text-gray-700">Filters</h3>
+            </div>
+            {["category", "available", "location"].map((filterType) => (
+              <select
+                key={filterType}
+                name={filterType}
+                value={filters[filterType]}
+                onChange={handleFilterChange}
+                className="bg-white border border-gray-200 p-2 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all min-w-[140px] text-sm"
+              >
+                <option value="">{`All ${filterType.charAt(0).toUpperCase() + filterType.slice(1)}s`}</option>
+                {filterType === "category" &&
+                  ["Sedan", "SUV", "Electric"].map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                {filterType === "available" &&
+                  ["true", "false"].map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt === "true" ? "Available" : "Not Available"}
+                    </option>
+                  ))}
+                {filterType === "location" &&
+                  ["Colombo", "Kandy", "Galle"].map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+              </select>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Cars Grid */}
+      <div className="container mx-auto px-4 pb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filteredCars.length > 0 ? (
+            filteredCars.map((car) => (
+              <div
+                key={car.carId}
+                className="group bg-white rounded-xl shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:border-yellow-200"
+              >
+                <div className="relative">
+                  <img
+                    src={car.carImageUrl}
+                    alt={car.model}
+                    className="w-full h-32 object-cover rounded-t-xl"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${car.available ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                    >
+                      {car.available ? "Available" : "Booked"}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">
+                    {car.model}
+                  </h3>
+                  <div className="space-y-1 mb-3">
+                    <p className="text-xs text-gray-600 flex items-center justify-between">
+                      <span>Category:</span>
+                      <span className="font-medium text-gray-900">
+                        {car.category}
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-600 flex items-center justify-between">
+                      <span>Seats:</span>
+                      <span className="font-medium text-gray-900">
+                        {car.numberOfSeats}
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-600 flex items-center">
+                      <MapPin className="w-3 h-3 mr-1 text-yellow-500" />
+                      <span className="font-medium text-gray-900">
+                        {car.location}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    disabled={!car.available}
+                    onClick={() => handleBookNow(car)}
+                    className={`w-full py-2 rounded-lg text-sm font-medium transition-all ${car.available ? "bg-black text-white hover:bg-gray-800" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                  >
+                    {car.available ? "Book Now" : "Unavailable"}
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <p className="text-gray-600">
+                No cars found with selected filters.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
-
 export default CabSelection;
