@@ -95,9 +95,6 @@ const Header = () => {
               <NavLink to="/about">About</NavLink>
               <NavLink to="/contact">Contact</NavLink>
               <NavLink to="/driverSignup">Drive</NavLink>
-              {user?.role === "ROLE_DRIVER" && (
-                <NavLink to="/driver-dashboard">Dashboard</NavLink>
-              )}
             </nav>
             {/* Desktop Buttons */}
             <div className="hidden md:flex items-center space-x-6">
@@ -131,10 +128,18 @@ const Header = () => {
                     </div>
                     {user.role === "ROLE_DRIVER" && (
                       <Link
-                        to="/driver-dashboard"
+                        to="/driverProfile"
                         className="block px-4 py-2.5 text-sm text-gray-700 hover:text-[#F9C80E] hover:bg-gray-50 transition-colors"
                       >
                         Dashboard
+                      </Link>
+                    )}
+                    {user.role === "ROLE_CUSTOMER" && (
+                      <Link
+                        to="/cusProfile"
+                        className="block px-4 py-2.5 text-sm text-gray-700 hover:text-[#F9C80E] hover:bg-gray-50 transition-colors"
+                      >
+                        Profile
                       </Link>
                     )}
                     <button
@@ -191,10 +196,19 @@ const Header = () => {
               </Link>
               {user?.role === "ROLE_DRIVER" && (
                 <Link
-                  to="/driver-dashboard"
+                  to="/driverProfile"
                   className="relative block px-4 py-3 text-base font-medium text-black hover:text-[#F9C80E] hover:bg-[#F9C80E]/5 rounded-lg transition-colors"
                 >
                   Dashboard
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#F9C80E] transform origin-left transition-transform duration-300 ease-out scale-x-0 group-hover:scale-x-100" />
+                </Link>
+              )}
+              {user?.role === "ROLE_CUSTOMER" && (
+                <Link
+                  to="/cusProfile"
+                  className="relative block px-4 py-3 text-base font-medium text-black hover:text-[#F9C80E] hover:bg-[#F9C80E]/5 rounded-lg transition-colors"
+                >
+                  Profile
                   <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#F9C80E] transform origin-left transition-transform duration-300 ease-out scale-x-0 group-hover:scale-x-100" />
                 </Link>
               )}

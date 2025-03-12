@@ -1,190 +1,277 @@
+import { cloneElement } from "react";
 import {
-  CalendarCheck,
-  Clock,
-  MapPin,
-  Phone,
-  Mail,
-  Star,
-  DollarSign,
+  CalendarCheckIcon,
+  ClockIcon,
+  MapPinIcon,
+  PhoneIcon,
+  MailIcon,
+  StarIcon,
+  DollarSignIcon,
+  UserIcon,
+  ChevronRightIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useAuth } from "../../utils/AuthContext"; // Adjust the import path based on your file structure
+
 const CustomerProfile = () => {
-  // Mock customer data
-  const customer = {
-    id: "CUS001",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Main St, New York, NY 10001",
-    joinDate: "January 2023",
-    avatar:
-      "https://ui-avatars.com/api/?name=John+Doe&background=000&color=fff&size=128",
-    stats: {
-      totalTrips: 48,
-      totalSpent: "$1,234",
-      avgRating: 4.8,
-      lastRide: "2 days ago",
-    },
-  };
-  // Mock booking history
-  const bookingHistory = [
-    {
-      id: "B001",
-      date: "2024-01-20",
-      from: "Airport Terminal 1",
-      to: "Downtown Hotel",
-      amount: "$35",
-      status: "Completed",
-      driver: "Mike Wilson",
-      rating: 5,
-    },
-    {
-      id: "B002",
-      date: "2024-01-15",
-      from: "Central Park",
-      to: "Brooklyn Bridge",
-      amount: "$28",
-      status: "Completed",
-      driver: "Sarah Chen",
-      rating: 4,
-    },
-    {
-      id: "B003",
-      date: "2024-01-10",
-      from: "Times Square",
-      to: "Madison Square Garden",
-      amount: "$22",
-      status: "Cancelled",
-      driver: "-",
-      rating: null,
-    },
-    // Add more booking history as needed
-  ];
+  const [customer, setCustomer] = useState(null);
+  const [bookingHistory, setBookingHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const { user } = useAuth(); // Get the authenticated user from context
+
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      if (!user || !user.userId) {
+        setError("Please log in to view your profile");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Fetch customer data
+        const customerResponse = await axios.get(
+          `http://localhost:8080/auth/customer/getcustomer/${user.userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+            },
+          }
+        );
+        const customerData = customerResponse.data;
+
+        // Fetch profile image
+        const imageResponse = await axios.get(
+          `http://localhost:8080/auth/customer/getcustomer/${user.userId}/profileImage`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+            },
+          }
+        );
+
+        // Fetch booking history
+        const bookingsResponse = await axios.get(
+          `http://localhost:8080/auth/bookings/getallcustomerbookings`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+            },
+          }
+        );
+
+        const customerProfile = {
+          id: customerData.customerId,
+          name: customerData.name,
+          email: customerData.email,
+          phone: customerData.phone,
+          address: customerData.address,
+          avatar: imageResponse.data || `https://ui-avatars.com/api/?name=${customerData.name}&background=0A0A0A&color=fff&size=128`,
+          stats: {
+            totalTrips: bookingsResponse.data.length, // Real data from backend
+            totalSpent: bookingsResponse.data.reduce((sum, booking) => sum + parseFloat(booking.amount || 0), 0).toFixed(2), // Assuming amount is a field
+            avgRating: bookingsResponse.data.length > 0 
+              ? (bookingsResponse.data.reduce((sum, booking) => sum + (booking.rating || 0), 0) / bookingsResponse.data.length).toFixed(1) 
+              : 0, // Assuming rating is a field
+            lastRide: bookingsResponse.data.length > 0 
+              ? new Date(bookingsResponse.data[0].date).toLocaleDateString() // Assuming date is a field
+              : "N/A",
+          },
+        };
+
+        setCustomer(customerProfile);
+
+        // Map booking history from response
+        setBookingHistory(bookingsResponse.data.map(booking => ({
+          id: booking.bookingId,
+          date: new Date(booking.date).toLocaleDateString(), // Adjust field name if different
+          from: booking.from || "Unknown", // Adjust field name if different
+          to: booking.to || "Unknown", // Adjust field name if different
+          amount: `$${parseFloat(booking.amount || 0).toFixed(2)}`, // Adjust field name if different
+          status: booking.status || "Unknown", // Adjust field name if different
+          driver: booking.driver || "N/A", // Adjust field name if different
+          rating: booking.rating || null, // Adjust field name if different
+        })));
+
+      } catch (err) {
+        setError("Failed to load customer data: " + (err.response?.data || err.message));
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCustomerData();
+  }, [user]);
+
+  if (!user) {
+    return <div className="text-center p-8 text-red-600">Please log in to view your profile</div>;
+  }
+
+  if (loading) {
+    return <div className="text-center p-8">Loading...</div>;
+  }
+
+  if (error || !customer) {
+    return <div className="text-center p-8 text-red-600">{error || "Customer not found"}</div>;
+  }
+
   return (
-    <div className="p-6 max-w-[1400px] space-y-6">
-      {/* Profile Header */}
-      <div className="bg-black rounded-2xl p-6 text-white border border-white/5 shadow-lg">
-        <div className="flex items-start gap-6">
-          <img
-            src={customer.avatar}
-            alt={customer.name}
-            className="w-24 h-24 rounded-xl border-2 border-yellow-400/20"
-          />
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold">{customer.name}</h1>
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="flex items-center gap-2 text-gray-400">
-                <Mail className="w-4 h-4" />
-                <span className="text-sm">{customer.email}</span>
+    <div className="max-w-[1400px] mx-auto p-6 space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <UserIcon className="w-6 h-6 text-yellow-600" />
+          Customer Profile
+        </h1>
+        <div className="flex gap-3">
+          <button className="px-4 py-2 bg-yellow-600 text-white hover:bg-yellow-700 transition-colors rounded-lg text-sm font-medium shadow-md">
+            Edit Profile
+          </button>
+          <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors rounded-lg text-sm font-medium border border-gray-300 text-gray-800 shadow-sm">
+            View Activity
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 text-gray-900 border border-yellow-200 shadow-xl">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-2xl blur-xl opacity-30"></div>
+            <img
+              src={customer.avatar}
+              alt={customer.name}
+              className="relative w-28 h-28 rounded-2xl border-4 border-yellow-500/50 object-cover shadow-lg"
+            />
+            <div className="absolute -bottom-2 -right-2 bg-yellow-500 w-6 h-6 rounded-full border-3 border-gray-100 shadow"></div>
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {customer.name}
+                </h1>
+                <p className="text-gray-600 text-sm mt-1 font-medium">
+                  Customer ID: {customer.id}
+                </p>
               </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <Phone className="w-4 h-4" />
-                <span className="text-sm">{customer.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">{customer.address}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">
-                  Member since {customer.joinDate}
-                </span>
-              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {[
+                { icon: <MailIcon />, label: "Email", value: customer.email },
+                { icon: <PhoneIcon />, label: "Phone", value: customer.phone },
+                { icon: <MapPinIcon />, label: "Address", value: customer.address },
+                { icon: <ClockIcon />, label: "Last Activity", value: customer.stats.lastRide },
+              ].map((item, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="p-2 bg-yellow-500 rounded-lg border border-yellow-600 shadow-sm">
+                    {cloneElement(item.icon, { className: "w-5 h-5 text-white" })}
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-xs font-medium">{item.label}</p>
+                    <p className="text-gray-900 text-sm font-semibold">
+                      {item.value}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
-      {/* Customer Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-black rounded-2xl p-6 text-white border border-white/5 shadow-lg">
-          <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Total Trips</p>
-            <div className="p-2 bg-yellow-400/10 rounded-lg">
-              <CalendarCheck className="w-5 h-5 text-yellow-400" />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {[
+          { title: "Total Trips", value: customer.stats.totalTrips, icon: <CalendarCheckIcon /> },
+          { title: "Total Spent", value: `$${customer.stats.totalSpent}`, icon: <DollarSignIcon /> },
+        ].map((stat, index) => (
+          <div
+            key={index}
+            className="bg-gradient-to-br from-gray-50 to-yellow-50 rounded-2xl p-6 border border-yellow-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-gray-600 text-xs uppercase tracking-wider font-medium">
+                {stat.title}
+              </p>
+              <div className="p-2 bg-yellow-500 rounded-lg border border-yellow-600 shadow-sm">
+                {cloneElement(stat.icon, { className: "w-5 h-5 text-white" })}
+              </div>
             </div>
+            <p className="text-2xl font-bold mt-3 text-gray-900">
+              {stat.value}
+            </p>
           </div>
-          <p className="text-2xl font-bold mt-2">{customer.stats.totalTrips}</p>
-        </div>
-        <div className="bg-black rounded-2xl p-6 text-white border border-white/5 shadow-lg">
-          <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Total Spent</p>
-            <div className="p-2 bg-yellow-400/10 rounded-lg">
-              <DollarSign className="w-5 h-5 text-yellow-400" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold mt-2">{customer.stats.totalSpent}</p>
-        </div>
-        <div className="bg-black rounded-2xl p-6 text-white border border-white/5 shadow-lg">
-          <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Average Rating</p>
-            <div className="p-2 bg-yellow-400/10 rounded-lg">
-              <Star className="w-5 h-5 text-yellow-400" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold mt-2">
-            {customer.stats.avgRating}/5
-          </p>
-        </div>
-        <div className="bg-black rounded-2xl p-6 text-white border border-white/5 shadow-lg">
-          <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Last Ride</p>
-            <div className="p-2 bg-yellow-400/10 rounded-lg">
-              <Clock className="w-5 h-5 text-yellow-400" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold mt-2">{customer.stats.lastRide}</p>
-        </div>
+        ))}
       </div>
-      {/* Booking History */}
-      <div className="bg-black rounded-2xl p-6 text-white border border-white/5 shadow-lg">
-        <div className="flex items-center gap-2 mb-6">
-          <CalendarCheck className="w-5 h-5 text-yellow-400" />
-          <h2 className="text-lg font-semibold">Booking History</h2>
+
+      <div className="bg-gradient-to-br from-gray-50 to-yellow-50 rounded-2xl p-6 border border-yellow-200 shadow-xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-500 rounded-lg border border-yellow-600 shadow-sm">
+              <CalendarCheckIcon className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Booking History
+            </h2>
+          </div>
+          <button className="text-sm text-yellow-700 hover:text-yellow-800 font-semibold transition-colors flex items-center gap-1">
+            View all <ChevronRightIcon className="w-4 h-4" />
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-gray-400 text-sm border-b border-white/10">
-                <th className="text-left pb-3">Booking ID</th>
-                <th className="text-left pb-3">Date</th>
-                <th className="text-left pb-3">From</th>
-                <th className="text-left pb-3">To</th>
-                <th className="text-left pb-3">Driver</th>
-                <th className="text-left pb-3">Status</th>
-                <th className="text-left pb-3">Rating</th>
-                <th className="text-right pb-3">Amount</th>
+              <tr className="text-gray-600 text-xs uppercase tracking-wider border-b border-yellow-200">
+                <th className="text-left pb-4 font-semibold">Booking ID</th>
+                <th className="text-left pb-4 font-semibold">Date</th>
+                <th className="text-left pb-4 font-semibold">From</th>
+                <th className="text-left pb-4 font-semibold">To</th>
+                <th className="text-left pb-4 font-semibold">Driver</th>
+                <th className="text-left pb-4 font-semibold">Status</th>
+                <th className="text-left pb-4 font-semibold">Rating</th>
+                <th className="text-right pb-4 font-semibold">Amount</th>
               </tr>
             </thead>
             <tbody>
               {bookingHistory.map((booking) => (
                 <tr
                   key={booking.id}
-                  className="border-b border-white/5 text-sm"
+                  className="border-b border-yellow-100 hover:bg-yellow-50/50 transition-colors"
                 >
-                  <td className="py-4">{booking.id}</td>
-                  <td className="py-4">{booking.date}</td>
-                  <td className="py-4">{booking.from}</td>
-                  <td className="py-4">{booking.to}</td>
-                  <td className="py-4">{booking.driver}</td>
+                  <td className="py-4 text-sm font-semibold text-gray-900">
+                    {booking.id}
+                  </td>
+                  <td className="py-4 text-sm text-gray-700">{booking.pickupDate}</td>
+                  <td className="py-4 text-sm text-gray-700 max-w-[150px] truncate">
+                    {booking.pickupLocation}
+                  </td>
+                  <td className="py-4 text-sm text-gray-700 max-w-[150px] truncate">
+                    {booking.to}
+                  </td>
+                  <td className="py-4 text-sm text-gray-700">
+                    {booking.driver}
+                  </td>
                   <td className="py-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs 
-                      ${booking.status === "Completed" ? "bg-green-500/20 text-green-400" : booking.status === "In Progress" ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"}`}
-                    >
-                      {booking.status}
-                    </span>
+                    <StatusBadge status={booking.status} />
                   </td>
                   <td className="py-4">
                     {booking.rating ? (
                       <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span>{booking.rating}</span>
+                        <StarIcon className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                        <span className="text-sm text-gray-700 font-medium">
+                          {booking.rating}
+                        </span>
                       </div>
                     ) : (
-                      "-"
+                      <span className="text-gray-500 text-sm">-</span>
                     )}
                   </td>
-                  <td className="py-4 text-right">{booking.amount}</td>
+                  <td className="py-4 text-right text-sm font-semibold text-gray-900">
+                    {booking.amount}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -194,4 +281,29 @@ const CustomerProfile = () => {
     </div>
   );
 };
+
+const StatusBadge = ({ status }) => {
+  let classes = "";
+  switch (status) {
+    case "Completed":
+      classes = "bg-green-100 text-green-700 border-green-300 shadow-sm";
+      break;
+    case "In Progress":
+      classes = "bg-yellow-100 text-yellow-700 border-yellow-300 shadow-sm";
+      break;
+    case "Cancelled":
+      classes = "bg-gray-100 text-gray-700 border-gray-300 shadow-sm";
+      break;
+    default:
+      classes = "bg-gray-100 text-gray-700 border-gray-300 shadow-sm";
+  }
+  return (
+    <span
+      className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${classes}`}
+    >
+      {status}
+    </span>
+  );
+};
+
 export default CustomerProfile;

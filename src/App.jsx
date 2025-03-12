@@ -9,6 +9,9 @@ import BillingPage from "./pages/BillingPage/Billing";
 import Login from "./components/Login";
 import AdminRoutes from "./pages/AdminPage/AdminRoutes.jsx";
 import CustomerProfile from "./pages/CustomerPage/CustomerProfilePage.jsx";
+import DriverProfile from "./pages/DriverPage/DriverProfile.jsx";
+import ForgotPassword from "./components/ForgetPassword.jsx";
+import ResetPassword from "./components/RestPassword.jsx";
 // import SmoothScroll from "./components/SmoothScroll.jsx"; // Import the SmoothScroll component
 
 function App() {
@@ -30,7 +33,10 @@ function App() {
           <Route path="/customerSignup" element={<CustomerRegister />} />
           <Route path="/driverSignup" element={<DriverRegister/>}/>
           <Route path="/admin/*" element={<AdminRoutes />} />
-          <Route path="/cusDashboard" element={<CustomerProfile />} />
+          <Route path="/cusProfile" element={<CustomerProfile />} />
+          <Route path="/driverProfile" element={<DriverProfile />} />
+          <Route path="/forgotPassword" element={<ForgotPassword />} />
+          <Route path="/resetPassword" element={<ResetPassword />} />
           <Route path="/booking" element={<Booking />} />
           <Route path="/Billing" element={<BillingPage />} />
         </Routes>

@@ -1,70 +1,154 @@
-import { useState } from "react";
+import React from "react";
 import {
-  Car,
-  Users,
-  CreditCard,
-  ClipboardList,
-  LogOut,
+  LayoutDashboardIcon,
+  UsersIcon,
+  CarIcon,
+  CalendarIcon,
+  UserIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  LogOutIcon,
 } from "lucide-react";
-import AdminDashboard from "./AdminDashboard";
+import { Link } from "react-router-dom"; // Import Link
 
-const Sidebar = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+const AdminSidebar = ({ collapsed, onToggleCollapse }) => {
+  const navigationItems = [
+    { icon: React.createElement(LayoutDashboardIcon, { size: 20 }), label: "Dashboard", active: true, path: "/admin/dashboard" },
+    { icon: React.createElement(UsersIcon, { size: 20 }), label: "Drivers", path: "/admin/drivers" },
+    { icon: React.createElement(CarIcon, { size: 20 }), label: "Vehicles", path: "/admin/cars" },
+    { icon: React.createElement(CalendarIcon, { size: 20 }), label: "Bookings", path: "/admin/bookings" }, // Add path for Bookings
+    { icon: React.createElement(UserIcon, { size: 20 }), label: "Customers", path: "/admin/customers" },
+  ];
 
-  return (
-    <aside className="w-72 fixed top-0 left-0 h-[700px] m-2.5 bg-[#071013] text-white rounded-3xl p-6 shadow-[0_0_40px_rgba(0,0,0,0.1)] flex flex-col border border-white/5">
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-            <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-            <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-          </div>
-        </div>
-        <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-500">
-          Admin Panel
-        </h2>
-        <div className="h-0.5 w-12 bg-gradient-to-r from-yellow-400 to-yellow-500 mt-2"></div>
-      </div>
-      <nav className="space-y-1.5 flex-1">
-        {["dashboard", "bookings", "cabs", "users", "payments"].map((tab) => (
-          <button
-            key={tab}
-            className={`group flex items-center justify-start w-full p-2.5 rounded-xl transition-all duration-200 ease-in-out
-              ${activeTab === tab ? "bg-gradient-to-r from-yellow-500/20 to-yellow-400/20 text-white shadow-lg border border-yellow-500/20" : "hover:bg-white/5 text-gray-400 hover:text-white border border-transparent"}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            <div
-              className={`p-2 rounded-lg mr-3 transition-all duration-200
-              ${activeTab === tab ? "bg-gradient-to-r from-yellow-500 to-yellow-400 shadow-lg" : "bg-gray-900 group-hover:bg-gray-800"}`}
-            >
-              {tab === "/admin/dashboard" && <AdminDashboard className="w-4 h-4" />}
-              {tab === "bookings" && <ClipboardList className="w-4 h-4" />}
-              {tab === "cabs" && <Car className="w-4 h-4" />}
-              {tab === "users" && <Users className="w-4 h-4" />}
-              {tab === "payments" && <CreditCard className="w-4 h-4" />}
-            </div>
-            <span className="text-sm font-medium capitalize">{tab}</span>
-            {activeTab === tab && (
-              <div className="ml-auto w-1 h-6 rounded-full bg-gradient-to-b from-yellow-400 to-yellow-500"></div>
-            )}
-          </button>
-        ))}
-      </nav>
-      <div className="pt-4">
-        <button
-          className="flex items-center w-full p-2.5 rounded-xl transition-all duration-200 
-          bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800
-          shadow-lg hover:shadow-xl text-white border border-white/5"
-        >
-          <div className="p-2 rounded-lg mr-3 bg-white/10">
-            <LogOut className="w-4 h-4" />
-          </div>
-          <span className="text-sm font-medium">Logout</span>
-        </button>
-      </div>
-    </aside>
+  return React.createElement(
+    "aside",
+    {
+      className: `${collapsed ? "w-20" : "w-64"} bg-black text-white h-screen transition-width duration-300 ease-in-out flex flex-col`,
+    },
+    [
+      // Logo Section
+      React.createElement(
+        "div",
+        {
+          className: "flex items-center justify-between p-4 border-b border-gray-800",
+          key: "logo-section",
+        },
+        [
+          React.createElement(
+            "div",
+            { className: "flex items-center", key: "logo" },
+            [
+              React.createElement(
+                "div",
+                {
+                  className: "bg-yellow-400 rounded-md p-2 flex items-center justify-center",
+                  key: "logo-icon",
+                },
+                React.createElement(CarIcon, { className: "text-black", size: 24 })
+              ),
+              !collapsed &&
+                React.createElement(
+                  "span",
+                  { className: "ml-3 font-bold text-lg text-yellow-400", key: "logo-text" },
+                  "MegaCityCab"
+                ),
+            ]
+          ),
+          React.createElement(
+            "button",
+            {
+              onClick: onToggleCollapse,
+              className: "p-1 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white",
+              key: "collapse-button",
+            },
+            collapsed
+              ? React.createElement(ChevronRightIcon, { size: 20 })
+              : React.createElement(ChevronLeftIcon, { size: 20 })
+          ),
+        ]
+      ),
+
+      // Navigation
+      React.createElement(
+        "nav",
+        { className: "flex-1 py-4 overflow-y-auto", key: "navigation" },
+        React.createElement(
+          "ul",
+          { key: "navigation-list" },
+          navigationItems.map((item, index) =>
+            React.createElement(
+              "li",
+              { key: index },
+              React.createElement(
+                Link, // Use Link instead of <a>
+                {
+                  to: item.path, // Use the path from navigationItems
+                  className: `flex items-center py-3 px-4 ${
+                    item.active ? "bg-yellow-400 text-black" : "text-gray-300 hover:bg-gray-800"
+                  } ${collapsed ? "justify-center" : ""}`,
+                },
+                [
+                  React.createElement("span", { className: "flex-shrink-0", key: "icon" }, item.icon),
+                  !collapsed &&
+                    React.createElement(
+                      "span",
+                      { className: "ml-3", key: "label" },
+                      item.label
+                    ),
+                ]
+              )
+            )
+          )
+        )
+      ),
+
+      // User Profile
+      React.createElement(
+        "div",
+        {
+          className: `p-4 border-t border-gray-800 ${collapsed ? "flex justify-center" : ""}`,
+          key: "user-profile",
+        },
+        React.createElement(
+          "div",
+          { className: `flex items-center ${collapsed ? "justify-center" : ""}`, key: "profile" },
+          [
+            React.createElement(
+              "div",
+              {
+                className: "w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center",
+                key: "profile-icon",
+              },
+              React.createElement(UserIcon, { size: 20, className: "text-black" })
+            ),
+            !collapsed &&
+              React.createElement(
+                "div",
+                { className: "ml-3", key: "profile-details" },
+                [
+                  React.createElement(
+                    "p",
+                    { className: "text-sm font-medium", key: "username" },
+                    "Admin User"
+                  ),
+                  React.createElement(
+                    "div",
+                    {
+                      className: "flex items-center text-xs text-gray-400 mt-1 hover:text-yellow-400 cursor-pointer",
+                      key: "logout",
+                    },
+                    [
+                      React.createElement(LogOutIcon, { size: 14, className: "mr-1", key: "logout-icon" }),
+                      React.createElement("span", { key: "logout-text" }, "Logout"),
+                    ]
+                  ),
+                ]
+              ),
+          ]
+        )
+      ),
+    ]
   );
 };
 
-export default Sidebar;
+export default AdminSidebar;

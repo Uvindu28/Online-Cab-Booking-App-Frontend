@@ -10,7 +10,7 @@ const AdminLayout = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-10 text-white overflow-auto">
+      <div className="flex-1 text-white overflow-auto">
         <Outlet />
       </div>
     </div>

@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CheckCircle } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import DateTimePicker from "react-datetime-picker";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { LoadScript, Autocomplete } from "@react-google-maps/api";
-import "react-datetime-picker/dist/DateTimePicker.css";
-import "react-calendar/dist/Calendar.css";
-import "react-clock/dist/Clock.css";
-import "leaflet/dist/leaflet.css";
+import DatePicker from "react-datepicker";
+import { LoadScript, Autocomplete, GoogleMap, DirectionsRenderer } from "@react-google-maps/api";
+import "react-datepicker/dist/react-datepicker.css";
 import Header from "../../components/Header.jsx";
-import { useAuth } from "../../utils/AuthContext.jsx"; // Import the useAuth hook
+import { useAuth } from "../../utils/AuthContext.jsx";
+import toast from "react-hot-toast";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyAe8qybKlyLJc7fAC3s-0NwUApOPYRILCs";
 const libraries = ["places"];
@@ -25,27 +22,44 @@ const getDistance = (coords1, coords2) => {
   const R = 6371;
   const dLat = (coords2[0] - coords1[0]) * Math.PI / 180;
   const dLon = (coords2[1] - coords1[1]) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(coords1[0] * Math.PI / 180) * Math.cos(coords2[0] * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(coords1[0] * Math.PI / 180) * Math.cos(coords2[0] * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
+const getSriLankanTime = () => {
+  const now = new Date();
+  const offset = 5.5 * 60;
+  return new Date(now.getTime() + offset * 60 * 1000);
+};
+
+const getSriLankanTimeFormatted = () => {
+  const sriLankanTime = getSriLankanTime();
+  const hours = sriLankanTime.getUTCHours().toString().padStart(2, "0");
+  const minutes = sriLankanTime.getUTCMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
 const BillingPage = () => {
-  const { user } = useAuth(); // Get user from AuthContext
+  const { user } = useAuth();
   const location = useLocation();
   const { car } = location.state || {};
 
-  const [paymentMethod] = useState("credit-card");
   const [isPaid, setIsPaid] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
-  const [pickupDateTime, setPickupDateTime] = useState(new Date());
+  const [pickupDate, setPickupDate] = useState(getSriLankanTime());
+  const [pickupTime, setPickupTime] = useState({
+    hours: getSriLankanTimeFormatted().split(":")[0],
+    minutes: getSriLankanTimeFormatted().split(":")[1],
+  });
   const [assignedDriver, setAssignedDriver] = useState(null);
-  const [pickupSearch, setPickupSearch] = useState("");
-  const [dropoffSearch, setDropoffSearch] = useState("");
+  const [pickupSearch, setPickupSearch] = useState("Colombo City Center");
+  const [dropoffSearch, setDropoffSearch] = useState("Bandaranaike Airport");
+  const [driverRequired, setDriverRequired] = useState(false);
   const [rideDetails, setRideDetails] = useState({
     cabModel: "",
     licensePlate: "",
@@ -60,9 +74,11 @@ const BillingPage = () => {
     dropoffCoords: [7.1806, 79.8846],
     distance: 0,
   });
+  const [directions, setDirections] = useState(null);
 
   const [pickupAutocomplete, setPickupAutocomplete] = useState(null);
   const [dropoffAutocomplete, setDropoffAutocomplete] = useState(null);
+  const mapRef = useRef(null);
 
   useEffect(() => {
     if (car) {
@@ -76,33 +92,33 @@ const BillingPage = () => {
   }, [car]);
 
   useEffect(() => {
-    if (rideDetails.pickupCoords && rideDetails.dropoffCoords) {
+    if (rideDetails.pickupCoords && rideDetails.dropoffCoords && window.google?.maps) {
       const distance = getDistance(rideDetails.pickupCoords, rideDetails.dropoffCoords);
-      setRideDetails(prev => ({
+      setRideDetails((prev) => ({
         ...prev,
         distance,
         distanceFare: distance * 1.5,
-        total: prev.baseFare + (distance * 1.5) + prev.tax
+        total: prev.baseFare + distance * 1.5 + prev.tax,
       }));
+
+      const directionsService = new window.google.maps.DirectionsService();
+      directionsService.route(
+        {
+          origin: { lat: rideDetails.pickupCoords[0], lng: rideDetails.pickupCoords[1] },
+          destination: { lat: rideDetails.dropoffCoords[0], lng: rideDetails.dropoffCoords[1] },
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            setDirections(result);
+          } else {
+            console.error(`Directions request failed due to ${status}`);
+            setError("Failed to load route. Please try again.");
+          }
+        }
+      );
     }
   }, [rideDetails.pickupCoords, rideDetails.dropoffCoords]);
-
-  // Check if user is authenticated
-  if (!user) {
-    return (
-      <div className="text-center text-red-500 font-semibold py-10">
-        Please log in to book a ride!
-      </div>
-    );
-  }
-
-  if (!car) {
-    return (
-      <div className="text-center text-red-500 font-semibold py-10">
-        No cab selected!
-      </div>
-    );
-  }
 
   const onPlaceChanged = (type) => {
     const autocomplete = type === "pickup" ? pickupAutocomplete : dropoffAutocomplete;
@@ -132,55 +148,114 @@ const BillingPage = () => {
   };
 
   const handlePayment = async () => {
-    if (!pickupDateTime) {
-      setError("Please select a pickup date and time.");
+    if (!pickupDate || !pickupTime.hours || !pickupTime.minutes) {
+      setError("Please select both a pickup date and time.");
       return;
     }
-
+  
     setIsProcessing(true);
     setError(null);
-
+  
+    const pickupDateTime = new Date(pickupDate);
+    pickupDateTime.setUTCHours(parseInt(pickupTime.hours), parseInt(pickupTime.minutes));
+  
     const bookingData = {
       carId: car.carId,
       pickupLocation: rideDetails.pickup,
-      dropoffLocation: rideDetails.dropoff,
-      pickupDateTime: pickupDateTime.toISOString(),
-      paymentMethod,
+      destination: rideDetails.dropoff,
+      pickupDate: pickupDateTime.toISOString().slice(0, 10),
+      pickupTime: `${pickupTime.hours}:${pickupTime.minutes}`,
       totalAmount: rideDetails.total,
-      customerId: user.userId, // Add customerId from authenticated user
+      driverRequired: driverRequired,
     };
-
+  
     try {
       const token = localStorage.getItem("jwtToken");
+      if (!token) {
+        throw new Error("No authentication token found. Please log in again.");
+      }
+  
+      console.log("JWT Token:", token); // Debug token
+      console.log("Booking data:", bookingData); // Debug payload
+  
       const response = await fetch("http://localhost:8080/auth/bookings/createbooking", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // Add JWT token to headers
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify(bookingData),
       });
-
+  
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error("Authentication failed. Please log in again.");
+        } else if (response.status === 403) {
+          throw new Error("You don’t have permission to create a booking. Contact support.");
+        } else {
+          const errorText = await response.text();
+          throw new Error(errorText || "Payment processing failed");
         }
-        throw new Error(await response.text() || "Payment processing failed");
       }
-
+  
       const bookingResponse = await response.json();
+  
+      if (driverRequired && bookingResponse.driverId) {
+        const driverResponse = await fetch(`http://localhost:8080/auth/drivers/${bookingResponse.driverId}`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+  
+        if (!driverResponse.ok) {
+          if (driverResponse.status === 403) {
+            throw new Error("You don’t have permission to access driver details. Contact support.");
+          } else {
+            const errorText = await driverResponse.text();
+            throw new Error(errorText || "Failed to fetch driver details");
+          }
+        }
+  
+        const driverDetails = await driverResponse.json();
+        setAssignedDriver(driverDetails);
+      }
+  
       setIsPaid(true);
-      setAssignedDriver(bookingResponse.assignedDriver);
-      alert("Payment Successful! Your ride has been confirmed.");
+      toast.success("Payment Successful! Your ride has been confirmed.");
     } catch (error) {
       setError(`Payment failed: ${error.message}`);
+      console.error("Payment error:", error);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  if (!user) {
+    return (
+      <div className="text-center text-red-500 font-semibold py-10">
+        Please log in to book a ride!
+      </div>
+    );
+  }
+
+  if (!car) {
+    return (
+      <div className="text-center text-red-500 font-semibold py-10">
+        No cab selected!
+      </div>
+    );
+  }
+
   return (
-    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY} libraries={libraries}>
+    <LoadScript
+      googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+      libraries={libraries}
+      loadingElement={<div className="text-center py-10">Loading Google Maps...</div>}
+      onError={() =>
+        setError("Failed to load Google Maps. Please check your network or disable ad blockers.")
+      }
+    >
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <Header />
         <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 mt-15">
@@ -255,47 +330,93 @@ const BillingPage = () => {
                 Ride Details
               </h3>
               <div className="space-y-2 text-gray-600">
-                <p><strong>Cab:</strong> {rideDetails.cabModel} ({rideDetails.licensePlate})</p>
-                <p><strong>Seats:</strong> {rideDetails.seats}</p>
-                <p><strong>Pickup:</strong> {rideDetails.pickup}</p>
-                <p><strong>Dropoff:</strong> {rideDetails.dropoff}</p>
-                <p><strong>Distance:</strong> {rideDetails.distance.toFixed(2)} km</p>
-                <p><strong>Pickup Time:</strong> {pickupDateTime.toLocaleString()}</p>
+                <p>
+                  <strong>Cab:</strong> {rideDetails.cabModel} ({rideDetails.licensePlate})
+                </p>
+                <p>
+                  <strong>Seats:</strong> {rideDetails.seats}
+                </p>
+                <p>
+                  <strong>Pickup:</strong> {rideDetails.pickup}
+                </p>
+                <p>
+                  <strong>Dropoff:</strong> {rideDetails.dropoff}
+                </p>
+                <p>
+                  <strong>Distance:</strong> {rideDetails.distance.toFixed(2)} km
+                </p>
+                <p>
+                  <strong>Pickup Date:</strong>{" "}
+                  {pickupDate.toLocaleDateString("en-US", { timeZone: "Asia/Colombo" })}
+                </p>
+                <p>
+                  <strong>Pickup Time:</strong> {`${pickupTime.hours}:${pickupTime.minutes}`}
+                </p>
               </div>
             </div>
 
             <div className="mb-8">
-              <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-                Ride Route
-              </h3>
-              <MapContainer
-                center={rideDetails.pickupCoords}
+              <h3 className="text-2xl font-semibold text-gray-800 mb-4">Ride Route</h3>
+              <GoogleMap
+                mapContainerClassName="h-72 w-full rounded-lg shadow-md"
+                center={{ lat: rideDetails.pickupCoords[0], lng: rideDetails.pickupCoords[1] }}
                 zoom={10}
-                className="h-72 w-full rounded-lg shadow-md"
+                onLoad={(map) => (mapRef.current = map)}
               >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={rideDetails.pickupCoords}>
-                  <Popup>Pickup: {rideDetails.pickup}</Popup>
-                </Marker>
-                <Marker position={rideDetails.dropoffCoords}>
-                  <Popup>Dropoff: {rideDetails.dropoff}</Popup>
-                </Marker>
-              </MapContainer>
+                {directions && <DirectionsRenderer directions={directions} />}
+              </GoogleMap>
             </div>
 
-            <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Pickup Date & Time
-              </label>
-              <DateTimePicker
-                onChange={setPickupDateTime}
-                value={pickupDateTime}
-                format="y-MM-dd h:mm a"
-                disableClock={true}
-                minDate={new Date()}
-                clearIcon={null}
-                className="w-full bg-white border border-gray-300 rounded-lg p-2"
-              />
+            <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Pickup Date (Sri Lanka Time)
+                </label>
+                <DatePicker
+                  selected={pickupDate}
+                  onChange={(date) => setPickupDate(date)}
+                  dateFormat="yyyy-MM-dd"
+                  minDate={getSriLankanTime()}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Pickup Time (Sri Lanka Time)
+                </label>
+                <div className="flex space-x-2">
+                  <select
+                    value={pickupTime.hours}
+                    onChange={(e) =>
+                      setPickupTime((prev) => ({ ...prev, hours: e.target.value }))
+                    }
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map(
+                      (hour) => (
+                        <option key={hour} value={hour}>
+                          {hour}
+                        </option>
+                      )
+                    )}
+                  </select>
+                  <select
+                    value={pickupTime.minutes}
+                    onChange={(e) =>
+                      setPickupTime((prev) => ({ ...prev, minutes: e.target.value }))
+                    }
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0")).map(
+                      (minute) => (
+                        <option key={minute} value={minute}>
+                          {minute}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="mb-8 p-6 bg-gray-50 rounded-lg">
@@ -323,11 +444,25 @@ const BillingPage = () => {
               </div>
             </div>
 
+            <div className="mb-8">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={driverRequired}
+                  onChange={(e) => setDriverRequired(e.target.checked)}
+                  className="form-checkbox h-5 w-5 text-indigo-600 rounded"
+                />
+                <span className="text-gray-700">Do you need a driver?</span>
+              </label>
+            </div>
+
             <button
               onClick={handlePayment}
               disabled={isProcessing}
               className={`w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold transition-all duration-300 ${
-                isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:from-indigo-700 hover:to-purple-700'
+                isProcessing
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:from-indigo-700 hover:to-purple-700"
               }`}
             >
               {isProcessing ? "Processing..." : "Confirm Payment"}
@@ -338,8 +473,18 @@ const BillingPage = () => {
                 <h3 className="text-2xl font-semibold text-gray-800 mb-4">
                   Assigned Driver
                 </h3>
-                <p><strong>Name:</strong> {assignedDriver.name}</p>
-                <p><strong>Car Model:</strong> {assignedDriver.carModel}</p>
+                <p>
+                  <strong>Name:</strong> {assignedDriver.name}
+                </p>
+                <p>
+                  <strong>Contact:</strong> {assignedDriver.contactNumber}
+                </p>
+                <p>
+                  <strong>Car Model:</strong> {assignedDriver.carModel}
+                </p>
+                <p>
+                  <strong>License Plate:</strong> {assignedDriver.licensePlate}
+                </p>
               </div>
             )}
 

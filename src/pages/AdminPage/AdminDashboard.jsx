@@ -37,7 +37,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-7">
+    <div className="space-y-6 max-w-[1400px] mx-7 mt-5">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <div key={index} className="bg-[#071013] rounded-2xl p-6 text-white border border-white/5 shadow-lg">
