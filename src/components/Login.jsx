@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Lock, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { EyeIcon, EyeOffIcon, CarIcon, Mail, Lock } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../utils/AuthContext";
 
@@ -8,6 +8,7 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,26 +28,25 @@ const Login = () => {
         formData
       );
       
-      console.log("Login response:", response.data); // Debug log
+      console.log("Login response:", response.data);
       
       const { token, userId, role } = response.data;
       
-        localStorage.setItem("jwtToken", token);
-        localStorage.setItem("userId", userId);
-        localStorage.setItem("role", role);
+      localStorage.setItem("jwtToken", token);
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("role", role);
 
       login(token);
 
-      // Navigate based on role
       switch (role) {
         case "ROLE_ADMIN":
-          navigate("/adminDashboard");
+          navigate("/admin/dashboard");
           break;
         case "ROLE_CUSTOMER":
-          navigate("/cusDashboard");
+          navigate("/");
           break;
         case "ROLE_DRIVER":
-          navigate("/driver-dashboard");
+          navigate("/driverProfile");
           break;
         default:
           setError("Invalid user role");
@@ -55,7 +55,6 @@ const Login = () => {
       console.error("Login error:", error);
       
       if (error.response) {
-        // Handle specific error responses from the server
         switch (error.response.status) {
           case 401:
             setError("Invalid email or password");
@@ -80,82 +79,112 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-6">
-      <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
-          Login
-        </h2>
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-yellow-400/10 rotate-12 transform scale-150" />
+        <div className="absolute top-1/2 left-1/2 w-full h-full bg-yellow-400/5 -rotate-12 transform scale-150" />
+      </div>
+      <div className="max-w-md w-full backdrop-blur-sm bg-white/10 p-8 rounded-2xl shadow-2xl relative transition-transform hover:scale-[1.01] duration-300">
+        <div className="flex flex-col items-center justify-center">
+          <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-4 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-200">
+            <CarIcon size={32} className="text-black" />
+          </div>
+          <h2 className="mt-6 text-4xl font-bold text-white bg-clip-text">
+            Welcome back
+          </h2>
+          <p className="mt-2 text-gray-400">Sign in to your account</p>
+        </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mt-4 p-3 bg-red-100/10 border border-red-400/20 text-red-300 rounded-xl">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email Input */}
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              required
-              disabled={isLoading}
-              className="w-full pl-10 pr-4 py-3 border rounded-md focus:border-emerald-500 focus:ring-emerald-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-5">
+            <div className="group">
+              <label htmlFor="email" className="text-sm font-medium text-gray-300">
+                Email address
+              </label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className="mt-1 w-full pl-10 px-4 py-3 bg-white/10 border border-gray-700 text-white rounded-xl focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 transition-all duration-200 placeholder-gray-500"
+                  placeholder="Enter your email"
+                />
+              </div>
+            </div>
+            <div className="group">
+              <label htmlFor="password" className="text-sm font-medium text-gray-300">
+                Password
+              </label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className="w-full pl-10 px-4 py-3 bg-white/10 border border-gray-700 text-white rounded-xl focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 transition-all duration-200 placeholder-gray-500"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-400 transition-colors duration-200"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
+                </button>
+              </div>
+            </div>
           </div>
-
-          {/* Password Input */}
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              required
-              disabled={isLoading}
-              className="w-full pl-10 pr-4 py-3 border rounded-md focus:border-emerald-500 focus:ring-emerald-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 text-yellow-400 focus:ring-yellow-400 border-gray-700 rounded bg-white/10"
+              />
+              <label htmlFor="remember-me" className="ml-2 text-sm text-gray-300">
+                Remember me
+              </label>
+            </div>
+            <Link
+              to="/forgotPassword"
+              className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
+            >
+              Forgot password?
+            </Link>
           </div>
-
-          {/* Login Button */}
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full bg-emerald-500 text-white py-3 rounded-md font-semibold transition-all
-              ${isLoading 
-                ? 'opacity-70 cursor-not-allowed' 
-                : 'hover:bg-emerald-600'}`}
+            className={`w-full py-3 px-4 border-0 rounded-xl text-black font-medium bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-[1.02] transition-all duration-200 ${isLoading ? "opacity-75 cursor-not-allowed" : ""}`}
           >
-            {isLoading ? "Logging in..." : "Login"}
+            {isLoading ? "Logging in..." : "Sign in"}
           </button>
-
-          {/* Links */}
-          <div className="text-center text-sm text-gray-600 mt-4 space-y-2">
-            <p>
-              Don&apos;t have an account?{" "}
-              <Link
-                to="/customerSignup"
-                className="text-emerald-500 hover:underline"
-              >
-                Sign Up
-              </Link>
-            </p>
-            <p>
-              <Link
-                to="/forgot-password"
-                className="text-emerald-500 hover:underline"
-              >
-                Forgot Password?
-              </Link>
-            </p>
-          </div>
         </form>
+        <p className="mt-6 text-center text-sm text-gray-400">
+          Don&apos;t have an account?{" "}
+          <Link
+            to="/customerSignup"
+            className="font-medium text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );

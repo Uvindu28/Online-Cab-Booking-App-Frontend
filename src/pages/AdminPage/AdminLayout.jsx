@@ -1,11 +1,20 @@
-import React from 'react'
+import AdminSidebar from './AdminSidebar';
+import { Outlet } from 'react-router-dom';
 
 const AdminLayout = () => {
   return (
-    <div>
-      
-    </div>
-  )
-}
+    <div className="flex h-screen">
+      {/* Sidebar */}
+      <div className="w-64">
+        <AdminSidebar />
+      </div>
 
-export default AdminLayout
+      {/* Main Content */}
+      <div className="flex-1 text-white overflow-auto">
+        <Outlet />
+      </div>
+    </div>
+  );
+};
+
+export default AdminLayout;

@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   Car,
   Phone,
@@ -9,6 +11,9 @@ import {
   Search,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+
+// Register the ScrollTrigger plugin
+gsap.registerPlugin(ScrollTrigger);
 
 const SearchBox = () => {
   const [pickup, setPickup] = useState("");
@@ -54,7 +59,7 @@ const SearchBox = () => {
 };
 
 const FeatureCard = ({ icon, title, description }) => (
-  <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100">
+  <div className="feature-card bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100">
     <div className="flex justify-center mb-6">
       <div className="p-3 bg-[#F9C80E]/10 rounded-full">
         {React.cloneElement(icon, { className: "w-8 h-8 text-[#F9C80E]" })}
@@ -89,7 +94,7 @@ const BackgroundSlider = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = [
     "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3",
-    "https://images.unsplash.com/photo-1601579112934-9ac1644f4b28?ixlib=rb-4.0.3",
+    "https://www.pexels.com/photo/self-confident-ethnic-taxi-driver-leaning-on-car-in-city-5835457/",
     "https://images.unsplash.com/photo-1590674899484-13da0d1b58f5?ixlib=rb-4.0.3",
     "https://images.unsplash.com/photo-1536893827774-411e1dc7c902?ixlib=rb-4.0.3",
   ];
@@ -122,6 +127,74 @@ const BackgroundSlider = () => {
 };
 
 const Home = () => {
+  const featuresRef = useRef(null);
+  const howItWorksRef = useRef(null);
+  const contactRef = useRef(null);
+
+  useEffect(() => {
+    const scroller = document.querySelector("[data-scrollbar]");
+  
+    // Animate Features Section
+    gsap.from(featuresRef.current, {
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      scrollTrigger: {
+        trigger: featuresRef.current,
+        start: "top 80%",
+        end: "top 50%",
+        toggleActions: "play none none reverse",
+        scroller: scroller, // Set smooth-scrollbar as the scroller
+      },
+    });
+  
+    // Animate How It Works Section
+    gsap.from(howItWorksRef.current, {
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      scrollTrigger: {
+        trigger: howItWorksRef.current,
+        start: "top 80%",
+        end: "top 50%",
+        toggleActions: "play none none reverse",
+        scroller: scroller, // Set smooth-scrollbar as the scroller
+      },
+    });
+  
+    // Animate Contact Section
+    gsap.from(contactRef.current, {
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      scrollTrigger: {
+        trigger: contactRef.current,
+        start: "top 80%",
+        end: "top 50%",
+        toggleActions: "play none none reverse",
+        scroller: scroller, // Set smooth-scrollbar as the scroller
+      },
+    });
+  
+    // Animate Feature Cards with Stagger
+    gsap.from(featuresRef.current.querySelectorAll(".feature-card"), {
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      stagger: 0.2,
+      scrollTrigger: {
+        trigger: featuresRef.current,
+        start: "top 80%",
+        end: "top 50%",
+        toggleActions: "play none none reverse",
+        scroller: scroller, // Set smooth-scrollbar as the scroller
+      },
+    });
+  
+    // Refresh ScrollTrigger after setup
+    ScrollTrigger.refresh();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -153,7 +226,7 @@ const Home = () => {
       </div>
 
       {/* Features Section */}
-      <div className="py-24 px-6 bg-gray-50">
+      <div ref={featuresRef} className="py-24 px-6 bg-gray-50">
         <div className="container mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
             Why Choose Mega City Cab?
@@ -179,7 +252,7 @@ const Home = () => {
       </div>
 
       {/* How It Works Section */}
-      <div className="bg-white py-24 px-6">
+      <div ref={howItWorksRef} className="bg-white py-24 px-6">
         <div className="container mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
             How It Works
@@ -205,7 +278,7 @@ const Home = () => {
       </div>
 
       {/* Contact Section */}
-      <div className="py-24 px-6 bg-gray-50">
+      <div ref={contactRef} className="py-24 px-6 bg-gray-50">
         <div className="container mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
             Contact Us
