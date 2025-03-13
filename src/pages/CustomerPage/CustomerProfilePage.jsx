@@ -13,13 +13,14 @@ import {
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../utils/AuthContext"; // Adjust the import path based on your file structure
+import { Link } from "react-router-dom";
 
 const CustomerProfile = () => {
   const [customer, setCustomer] = useState(null);
   const [bookingHistory, setBookingHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const { user } = useAuth(); // Get the authenticated user from context
 
   useEffect(() => {
@@ -32,7 +33,7 @@ const CustomerProfile = () => {
 
       try {
         setLoading(true);
-        
+
         // Fetch customer data
         const customerResponse = await axios.get(
           `http://localhost:8080/auth/customer/getcustomer/${user.userId}`,
@@ -73,28 +74,30 @@ const CustomerProfile = () => {
           avatar: imageResponse.data || `https://ui-avatars.com/api/?name=${customerData.name}&background=0A0A0A&color=fff&size=128`,
           stats: {
             totalTrips: bookingsResponse.data.length, // Real data from backend
-            totalSpent: bookingsResponse.data.reduce((sum, booking) => sum + parseFloat(booking.amount || 0), 0).toFixed(2), // Assuming amount is a field
-            avgRating: bookingsResponse.data.length > 0 
-              ? (bookingsResponse.data.reduce((sum, booking) => sum + (booking.rating || 0), 0) / bookingsResponse.data.length).toFixed(1) 
-              : 0, // Assuming rating is a field
-            lastRide: bookingsResponse.data.length > 0 
-              ? new Date(bookingsResponse.data[0].date).toLocaleDateString() // Assuming date is a field
+            totalSpent: bookingsResponse.data
+              .reduce((sum, booking) => sum + parseFloat(booking.totalAmount || 0), 0)
+              .toFixed(2), // Use totalAmount from Booking model
+            avgRating: bookingsResponse.data.length > 0
+              ? (bookingsResponse.data.reduce((sum, booking) => sum + (booking.passengerRating || 0), 0) / bookingsResponse.data.length).toFixed(1)
+              : 0, // Use passengerRating from Booking model
+            lastRide: bookingsResponse.data.length > 0
+              ? new Date(bookingsResponse.data[0].pickupDate).toLocaleDateString() // Use pickupDate
               : "N/A",
           },
         };
 
         setCustomer(customerProfile);
 
-        // Map booking history from response
+        // Map booking history from response using fields from the Booking model
         setBookingHistory(bookingsResponse.data.map(booking => ({
           id: booking.bookingId,
-          date: new Date(booking.date).toLocaleDateString(), // Adjust field name if different
-          from: booking.from || "Unknown", // Adjust field name if different
-          to: booking.to || "Unknown", // Adjust field name if different
-          amount: `$${parseFloat(booking.amount || 0).toFixed(2)}`, // Adjust field name if different
-          status: booking.status || "Unknown", // Adjust field name if different
-          driver: booking.driver || "N/A", // Adjust field name if different
-          rating: booking.rating || null, // Adjust field name if different
+          date: booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString() : "N/A", // Use pickupDate
+          from: booking.pickupLocation || "Unknown", // Use pickupLocation
+          to: booking.destination || "Unknown", // Use destination
+          amount: `$${parseFloat(booking.totalAmount || 0).toFixed(2)}`, // Use totalAmount
+          status: booking.status || "Unknown", // Use status
+          driver: booking.driverId ? "Assigned" : "N/A", // Use driverId to indicate assignment
+          rating: booking.passengerRating || null, // Use passengerRating
         })));
 
       } catch (err) {
@@ -128,12 +131,11 @@ const CustomerProfile = () => {
           Customer Profile
         </h1>
         <div className="flex gap-3">
-          <button className="px-4 py-2 bg-yellow-600 text-white hover:bg-yellow-700 transition-colors rounded-lg text-sm font-medium shadow-md">
-            Edit Profile
-          </button>
-          <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors rounded-lg text-sm font-medium border border-gray-300 text-gray-800 shadow-sm">
-            View Activity
-          </button>
+          <Link to="/editProfile">
+            <button className="px-4 py-2 bg-yellow-600 text-white hover:bg-yellow-700 transition-colors rounded-lg text-sm font-medium shadow-md">
+              Edit Profile
+            </button>
+          </Link>
         </div>
       </div>
 
@@ -244,9 +246,9 @@ const CustomerProfile = () => {
                   <td className="py-4 text-sm font-semibold text-gray-900">
                     {booking.id}
                   </td>
-                  <td className="py-4 text-sm text-gray-700">{booking.pickupDate}</td>
+                  <td className="py-4 text-sm text-gray-700">{booking.date}</td>
                   <td className="py-4 text-sm text-gray-700 max-w-[150px] truncate">
-                    {booking.pickupLocation}
+                    {booking.from}
                   </td>
                   <td className="py-4 text-sm text-gray-700 max-w-[150px] truncate">
                     {booking.to}
@@ -285,13 +287,13 @@ const CustomerProfile = () => {
 const StatusBadge = ({ status }) => {
   let classes = "";
   switch (status) {
-    case "Completed":
+    case "COMPLETED":
       classes = "bg-green-100 text-green-700 border-green-300 shadow-sm";
       break;
-    case "In Progress":
+    case "IN_PROGRESS":
       classes = "bg-yellow-100 text-yellow-700 border-yellow-300 shadow-sm";
       break;
-    case "Cancelled":
+    case "CANCELLED":
       classes = "bg-gray-100 text-gray-700 border-gray-300 shadow-sm";
       break;
     default:

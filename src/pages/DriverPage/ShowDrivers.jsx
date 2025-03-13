@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const AdminDriversPage = () => {
+const ShowDrivers = () => {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(null); // Track which driver is being deleted
 
-  const API_BASE_URL = 'http://localhost:8080/auth/driver'; // Adjust this URL as needed
+  const API_BASE_URL = 'http://localhost:8080/auth/driver';
 
   const getStatusColor = (availability) => {
     return availability ? 'bg-green-600' : 'bg-red-700';
@@ -30,22 +31,31 @@ const AdminDriversPage = () => {
 
   const handleViewClick = (driverId) => {
     console.log(`View driver with ID: ${driverId}`);
-    // Could navigate to a detailed view page
-    // e.g., history.push(`/drivers/${driverId}`);
   };
 
   const handleDeleteClick = async (driverId) => {
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      setError('No authentication token found. Please log in.');
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this driver?')) {
+      setDeleteLoading(driverId); // Show loading state for this driver
       try {
         await axios.delete(`${API_BASE_URL}/${driverId}`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}` // Assuming JWT auth
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
-        setDrivers(drivers.filter(driver => driver.driverId !== driverId));
+        setDrivers(drivers.filter((driver) => driver.driverId !== driverId));
+        setError(null); // Clear any previous errors
       } catch (err) {
-        setError('Failed to delete driver');
+        const errorMessage = err.response?.data || 'Failed to delete driver';
+        setError(errorMessage);
         console.error('Error deleting driver:', err);
+      } finally {
+        setDeleteLoading(null); // Reset loading state
       }
     }
   };
@@ -113,9 +123,14 @@ const AdminDriversPage = () => {
                     </button>
                     <button
                       onClick={() => handleDeleteClick(driver.driverId)}
-                      className="bg-red-600 text-white px-3 py-1 rounded-full hover:bg-red-700 transition-colors"
+                      disabled={deleteLoading === driver.driverId}
+                      className={`text-white px-3 py-1 rounded-full transition-colors ${
+                        deleteLoading === driver.driverId
+                          ? 'bg-gray-500 cursor-not-allowed'
+                          : 'bg-red-600 hover:bg-red-700'
+                      }`}
                     >
-                      Delete
+                      {deleteLoading === driver.driverId ? 'Deleting...' : 'Delete'}
                     </button>
                   </td>
                 </tr>
@@ -128,4 +143,4 @@ const AdminDriversPage = () => {
   );
 };
 
-export default AdminDriversPage;
+export default ShowDrivers;
