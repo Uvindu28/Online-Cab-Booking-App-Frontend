@@ -34,8 +34,7 @@ const CabSelection = () => {
       (filters.category === "" || car.category === filters.category) &&
       (filters.available === "" ||
         (filters.available === "true" && car.available) ||
-        (filters.available === "false" && !car.available)) &&
-      (filters.location === "" || car.location === filters.location)
+        (filters.available === "false" && !car.available))
     );
   });
   const handleBookNow = (car) => {
@@ -81,7 +80,7 @@ const CabSelection = () => {
               <Filter className="text-yellow-500 w-4 h-4" />
               <h3 className="text-sm font-semibold text-gray-700">Filters</h3>
             </div>
-            {["category", "available", "location"].map((filterType) => (
+            {["category", "available"].map((filterType) => (
               <select
                 key={filterType}
                 name={filterType}
@@ -91,7 +90,7 @@ const CabSelection = () => {
               >
                 <option value="">{`All ${filterType.charAt(0).toUpperCase() + filterType.slice(1)}s`}</option>
                 {filterType === "category" &&
-                  ["Sedan", "SUV", "Electric"].map((opt) => (
+                  ["SEDAN", "SUV", "ELECTRIC"].map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>
@@ -100,12 +99,6 @@ const CabSelection = () => {
                   ["true", "false"].map((opt) => (
                     <option key={opt} value={opt}>
                       {opt === "true" ? "Available" : "Not Available"}
-                    </option>
-                  ))}
-                {filterType === "location" &&
-                  ["Colombo", "Kandy", "Galle"].map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
                     </option>
                   ))}
               </select>

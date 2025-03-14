@@ -254,7 +254,7 @@ const Register = () => {
               />
             </div>
           </div>
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             <input
               id="terms"
               name="terms"
@@ -273,8 +273,9 @@ const Register = () => {
                 Privacy Policy
               </a>
             </label>
-          </div>
+          </div> */}
           <button
+            id ="login"
             type="submit"
             disabled={isLoading}
             className={`w-full py-3 px-4 border-0 rounded-xl text-black font-medium bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-[1.02] transition-all duration-200 ${isLoading ? "opacity-75 cursor-not-allowed" : ""}`}

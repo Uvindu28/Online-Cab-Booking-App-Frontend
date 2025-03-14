@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import AddVehicleForm from './AddVehicleForm'; // Import the new component
 
 const ErrorFallback = ({ error }) => (
   <div className="p-4 text-red-600">
@@ -11,6 +12,7 @@ const ErrorFallback = ({ error }) => (
 const AdminVehiclesPage = () => {
   const [vehiclesData, setVehiclesData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
 
   useEffect(() => {
     fetchVehicles();
@@ -69,6 +71,31 @@ const AdminVehiclesPage = () => {
     }
   };
 
+  const handleAddVehicleClick = () => {
+    setShowAddVehicleModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowAddVehicleModal(false);
+  };
+
+  const handleSubmitNewVehicle = async (newVehicleData) => {
+    try {
+      const response = await fetch('http://localhost:8080/auth/cars/createcar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newVehicleData),
+      });
+      if (!response.ok) throw new Error('Failed to add vehicle');
+      fetchVehicles();
+      setShowAddVehicleModal(false);
+    } catch (error) {
+      console.error('Error adding vehicle:', error);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen bg-white p-6">Loading...</div>;
   }
@@ -80,6 +107,12 @@ const AdminVehiclesPage = () => {
           <h2 className="text-2xl font-bold mb-6 flex items-center text-black">
             <span className="mr-2">🚙</span> Vehicles Management
           </h2>
+          <button
+            onClick={handleAddVehicleClick}
+            className="mb-4 bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition-colors"
+          >
+            Add Vehicle
+          </button>
           <div className="bg-[#071013] rounded-lg shadow-lg overflow-hidden">
             <table className="w-full text-left">
               <thead>
@@ -119,7 +152,7 @@ const AdminVehiclesPage = () => {
                     <td className="p-4">
                       ${vehicle.driverRate !== undefined ? vehicle.driverRate.toFixed(2) : 'N/A'}
                     </td>
-                    <td className="p-4">{vehicle.categoryId}</td>
+                    <td className="p-4">{vehicle.category}</td>
                     <td className="p-4 flex gap-2">
                       <button
                         onClick={() => handleViewClick(vehicle.carId)}
@@ -140,6 +173,14 @@ const AdminVehiclesPage = () => {
             </table>
           </div>
         </div>
+
+        {/* Add Vehicle Modal */}
+        {showAddVehicleModal && (
+          <AddVehicleForm
+            onClose={handleCloseModal}
+            onSubmit={handleSubmitNewVehicle}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );
