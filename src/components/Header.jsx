@@ -152,7 +152,9 @@ const Header = () => {
                 </div>
               ) : (
                 <Link to="/login">
-                  <button className="px-6 py-2.5 text-sm font-medium text-[#F9C80E] bg-white border-2 border-[#F9C80E] rounded-lg hover:bg-[#F9C80E]/10 focus:outline-none focus:ring-2 focus:ring-[#F9C80E] focus:ring-offset-2 transition-all duration-200">
+                  <button 
+                  id ="login"
+                  className="px-6 py-2.5 text-sm font-medium text-[#F9C80E] bg-white border-2 border-[#F9C80E] rounded-lg hover:bg-[#F9C80E]/10 focus:outline-none focus:ring-2 focus:ring-[#F9C80E] focus:ring-offset-2 transition-all duration-200">
                     Login
                   </button>
                 </Link>
