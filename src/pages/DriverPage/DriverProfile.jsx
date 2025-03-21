@@ -43,22 +43,19 @@ const DriverProfile = () => {
 
         const driverId = user.userId;
 
-        // Fetch driver data
         const driverResponse = await axios.get(
-          `http://localhost:8080/auth/driver/getdriver/${driverId}`,
+          `http://localhost:8080/auth/driver/driverprofile`,
           config
         );
         setDriver(driverResponse.data);
 
-        // Fetch bookings
         const bookingsResponse = await axios.get(
           `http://localhost:8080/auth/driver/${driverId}/bookings`,
           config
         );
         const bookings = bookingsResponse.data;
-        console.log("Fetched bookings:", bookings); // Debug booking statuses
+        console.log("Fetched bookings:", bookings);
 
-        // Separate current and past bookings based on completed flag
         const current = bookings.filter((booking) => !booking.completed);
         const past = bookings.filter((booking) => booking.completed);
         setCurrentBookings(current);
@@ -124,58 +121,29 @@ const DriverProfile = () => {
 
   const handleAcceptBooking = async (bookingId) => {
     try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
-        },
-      };
+        const config = {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+            },
+        };
 
-      await axios.put(
-        `http://localhost:8080/auth/bookings/${bookingId}/confirm`,
-        {},
-        config
-      );
-      setCurrentBookings(
-        currentBookings.map((booking) =>
-          booking.bookingId === bookingId ? { ...booking, status: "CONFIRMED" } : booking
-        )
-      );
-      setNewRideRequest(null); // Clear new ride request after accepting
+        await axios.put(
+            `http://localhost:8080/auth/bookings/${bookingId}/confirm`,
+            {},
+            config
+        );
+        setCurrentBookings(
+            currentBookings.map((booking) =>
+                booking.bookingId === bookingId ? { ...booking, status: "CONFIRMED" } : booking
+            )
+        );
+        setNewRideRequest(null); // Clear new ride request after accepting
     } catch (error) {
-      console.error("Error accepting booking:", error);
-      setError("Failed to accept booking. Please try again.");
+        console.error("Error accepting booking:", error);
+        setError("Failed to accept booking. Please try again.");
     }
-  };
+};
 
-  const handleDeclineBooking = async (bookingId) => {
-    try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
-        },
-      };
-
-      await axios.post(
-        `http://localhost:8080/auth/bookings/${bookingId}/cancel`,
-        { reason: "Declined by driver" },
-        config
-      );
-      setNewRideRequest(null); // Clear new ride request after declining
-    } catch (error) {
-      console.error("Error declining booking:", error);
-      setError("Failed to decline booking. Please try again.");
-    }
-  };
-
-  const handleAcceptNewRide = async () => {
-    if (!newRideRequest) return;
-    await handleAcceptBooking(newRideRequest.bookingId);
-  };
-
-  const handleDeclineNewRide = async () => {
-    if (!newRideRequest) return;
-    await handleDeclineBooking(newRideRequest.bookingId);
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -204,90 +172,81 @@ const DriverProfile = () => {
     </button>
   );
 
-  const DeclineButton = ({ onClick }) => (
-    <button
-      onClick={onClick}
-      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium text-sm hover:bg-gray-300 transition-colors"
-    >
-      Decline
-    </button>
-  );
-
   const BookingCard = ({ booking, isPast = false, showConfirmButton = false }) => (
     <div className="border rounded-lg overflow-hidden shadow-sm bg-white">
-      <div className="p-3">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full overflow-hidden mr-3">
-              <img
-                src={booking.passengerImage || "https://randomuser.me/api/portraits/lego/1.jpg"}
-                alt={booking.passengerName}
-                className="w-full h-full object-cover"
-              />
+        <div className="p-3">
+            <div className="flex justify-between items-start">
+                <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full overflow-hidden mr-3">
+                        <img
+                            src={booking.passengerImage || "https://randomuser.me/api/portraits/lego/1.jpg"}
+                            alt={booking.passengerName}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                    <div>
+                        <h4 className="font-medium text-gray-900">{booking.passengerName}</h4>
+                        <div className="flex items-center text-sm text-gray-500">
+                            <StarIcon className="w-4 h-4 text-yellow-500 mr-1" />
+                            <span>{booking.passengerRating !== null ? booking.passengerRating : "N/A"}</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <span
+                        className={`text-xs px-2 py-1 rounded-full ${getStatusColor(booking.status)}`}
+                    >
+                        {booking.status}
+                    </span>
+                </div>
             </div>
-            <div>
-              <h4 className="font-medium text-gray-900">{booking.passengerName}</h4>
-              <div className="flex items-center text-sm text-gray-500">
-                <StarIcon className="w-4 h-4 text-yellow-500 mr-1" />
-                <span>{booking.passengerRating !== null ? booking.passengerRating : "N/A"}</span>
-              </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                    <div className="flex items-start">
+                        <MapPinIcon className="w-4 h-4 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p className="text-xs text-gray-500">Pickup</p>
+                            <p className="text-xs">{booking.pickupLocation}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <div className="flex items-start">
+                        <MapPinIcon className="w-4 h-4 text-black mr-1 mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p className="text-xs text-gray-500">Dropoff</p>
+                            <p className="text-xs">{booking.destination}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div>
-            <span
-              className={`text-xs px-2 py-1 rounded-full ${getStatusColor(booking.status)}`}
-            >
-              {booking.status}
-            </span>
-          </div>
+            <div className="mt-3 flex justify-between items-center">
+                <div className="flex gap-3 text-xs">
+                    <div className="flex items-center">
+                        <ClockIcon className="w-4 h-4 text-gray-500 mr-1" />
+                        <span>{booking.pickupTime}</span>
+                    </div>
+                    <div className="flex items-center">
+                        <DollarSignIcon className="w-4 h-4 text-gray-500 mr-1" />
+                        <span>Rs. {booking.totalAmount}</span>
+                    </div>
+                </div>
+                {showConfirmButton && (
+                    <ConfirmButton
+                        text="Accept"
+                        onClick={() => handleAcceptBooking(booking.bookingId)}
+                    />
+                )}
+                {isPast && booking.completed && (
+                    <div className="flex items-center text-green-600">
+                        <CheckCircleIcon className="w-4 h-4 mr-1" />
+                        <span className="text-xs font-medium">Completed</span>
+                    </div>
+                )}
+            </div>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <div className="flex items-start">
-              <MapPinIcon className="w-4 h-4 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500">Pickup</p>
-                <p className="text-xs">{booking.pickupLocation}</p>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-start">
-              <MapPinIcon className="w-4 h-4 text-black mr-1 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500">Dropoff</p>
-                <p className="text-xs">{booking.destination}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 flex justify-between items-center">
-          <div className="flex gap-3 text-xs">
-            <div className="flex items-center">
-              <ClockIcon className="w-4 h-4 text-gray-500 mr-1" />
-              <span>{booking.pickupTime}</span>
-            </div>
-            <div className="flex items-center">
-              <DollarSignIcon className="w-4 h-4 text-gray-500 mr-1" />
-              <span>${booking.totalAmount}</span>
-            </div>
-          </div>
-          {showConfirmButton && (
-            <ConfirmButton
-              text="Accept"
-              onClick={() => handleAcceptBooking(booking.bookingId)}
-            />
-          )}
-          {isPast && booking.completed && (
-            <div className="flex items-center text-green-600">
-              <CheckCircleIcon className="w-4 h-4 mr-1" />
-              <span className="text-xs font-medium">Completed</span>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
-  );
+);
 
   if (!user) {
     return <div className="text-center p-8 text-red-600">Please log in to view your profile</div>;
@@ -374,33 +333,6 @@ const DriverProfile = () => {
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg mt-4 p-4">
-              <h3 className="font-bold text-lg mb-3">New Ride Request</h3>
-              {newRideRequest ? (
-                <>
-                  <div className="flex items-center mb-3">
-                    <div className="w-12 h-12 rounded-full overflow-hidden mr-3">
-                      <img
-                        src={newRideRequest.passengerImage || "https://randomuser.me/api/portraits/lego/1.jpg"}
-                        alt={newRideRequest.passengerName}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <p className="font-medium">{newRideRequest.passengerName}</p>
-                      <p className="text-sm text-gray-600">1.2 miles away</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <DeclineButton onClick={handleDeclineNewRide} />
-                    <ConfirmButton text="Accept" onClick={handleAcceptNewRide} />
-                  </div>
-                </>
-              ) : (
-                <p className="text-gray-600">No new ride requests</p>
-              )}
             </div>
           </div>
 

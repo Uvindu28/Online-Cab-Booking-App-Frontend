@@ -5,7 +5,6 @@ import {
   MapPinIcon,
   PhoneIcon,
   MailIcon,
-  StarIcon,
   DollarSignIcon,
   UserIcon,
   ChevronRightIcon,
@@ -94,7 +93,7 @@ const CustomerProfile = () => {
           date: booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString() : "N/A", // Use pickupDate
           from: booking.pickupLocation || "Unknown", // Use pickupLocation
           to: booking.destination || "Unknown", // Use destination
-          amount: `$${parseFloat(booking.totalAmount || 0).toFixed(2)}`, // Use totalAmount
+          amount: `Rs. ${parseFloat(booking.totalAmount || 0).toFixed(2)}`, // Use totalAmount
           status: booking.status || "Unknown", // Use status
           driver: booking.driverId ? "Assigned" : "N/A", // Use driverId to indicate assignment
           rating: booking.passengerRating || null, // Use passengerRating
@@ -188,7 +187,7 @@ const CustomerProfile = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
           { title: "Total Trips", value: customer.stats.totalTrips, icon: <CalendarCheckIcon /> },
-          { title: "Total Spent", value: `$${customer.stats.totalSpent}`, icon: <DollarSignIcon /> },
+          { title: "Total Spent", value: `Rs. ${customer.stats.totalSpent}`, icon: <DollarSignIcon /> },
         ].map((stat, index) => (
           <div
             key={index}
@@ -233,7 +232,6 @@ const CustomerProfile = () => {
                 <th className="text-left pb-4 font-semibold">To</th>
                 <th className="text-left pb-4 font-semibold">Driver</th>
                 <th className="text-left pb-4 font-semibold">Status</th>
-                <th className="text-left pb-4 font-semibold">Rating</th>
                 <th className="text-right pb-4 font-semibold">Amount</th>
               </tr>
             </thead>
@@ -258,18 +256,6 @@ const CustomerProfile = () => {
                   </td>
                   <td className="py-4">
                     <StatusBadge status={booking.status} />
-                  </td>
-                  <td className="py-4">
-                    {booking.rating ? (
-                      <div className="flex items-center gap-1">
-                        <StarIcon className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                        <span className="text-sm text-gray-700 font-medium">
-                          {booking.rating}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-500 text-sm">-</span>
-                    )}
                   </td>
                   <td className="py-4 text-right text-sm font-semibold text-gray-900">
                     {booking.amount}

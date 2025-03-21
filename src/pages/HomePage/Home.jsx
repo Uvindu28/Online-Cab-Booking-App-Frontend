@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
@@ -16,8 +16,8 @@ import { Link } from "react-router-dom";
 gsap.registerPlugin(ScrollTrigger);
 
 const SearchBox = () => {
-  const [pickup, setPickup] = useState("");
-  const [dropoff, setDropoff] = useState("");
+  const [pickup, setPickup] = React.useState("");
+  const [dropoff, setDropoff] = React.useState("");
 
   return (
     <div className="bg-black p-6 rounded-xl w-full max-w-4xl mx-auto shadow-lg border border-gray-800">
@@ -90,51 +90,67 @@ const ContactCard = ({ icon, title, info }) => (
   </div>
 );
 
-const BackgroundSlider = () => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const images = [
-    "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3",
-    "https://www.pexels.com/photo/self-confident-ethnic-taxi-driver-leaning-on-car-in-city-5835457/",
-    "https://images.unsplash.com/photo-1590674899484-13da0d1b58f5?ixlib=rb-4.0.3",
-    "https://images.unsplash.com/photo-1536893827774-411e1dc7c902?ixlib=rb-4.0.3",
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) =>
-        prevIndex === images.length - 1 ? 0 : prevIndex + 1
-      );
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [images.length]);
-
-  return (
-    <div className="absolute inset-0 overflow-hidden">
-      {images.map((image, index) => (
-        <div
-          key={index}
-          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out ${
-            index === currentImageIndex ? "opacity-100" : "opacity-0"
-          }`}
-          style={{
-            backgroundImage: `url('${image}')`,
-          }}
-        />
-      ))}
-      <div className="absolute inset-0 bg-black opacity-75" />
-    </div>
-  );
-};
-
 const Home = () => {
+  const heroTextRef = useRef(null);
+  const taxiRef = useRef(null);
   const featuresRef = useRef(null);
   const howItWorksRef = useRef(null);
   const contactRef = useRef(null);
+  const cursorRef = useRef(null);
+  const cursorFollowerRef = useRef(null);
 
   useEffect(() => {
     const scroller = document.querySelector("[data-scrollbar]");
-  
-    // Animate Features Section
+    
+    // Custom cursor movement
+    const moveCursor = (e) => {
+      gsap.to(cursorRef.current, {
+        x: e.clientX,
+        y: e.clientY,
+        duration: 0,
+      });
+      
+      gsap.to(cursorFollowerRef.current, {
+        x: e.clientX,
+        y: e.clientY,
+        duration: 0.2,
+        ease: "power2.out",
+      });
+    };
+
+    // Cursor hover effects
+    const hoverElements = document.querySelectorAll('button, a, .feature-card, input');
+    hoverElements.forEach(element => {
+      element.addEventListener('mouseenter', () => {
+        gsap.to(cursorRef.current, {
+          scale: 0.5,
+          opacity: 0,
+          duration: 0.3
+        });
+        gsap.to(cursorFollowerRef.current, {
+          scale: 2,
+          backgroundColor: '#F9C80E',
+          duration: 0.3
+        });
+      });
+      
+      element.addEventListener('mouseleave', () => {
+        gsap.to(cursorRef.current, {
+          scale: 1,
+          opacity: 1,
+          duration: 0.3
+        });
+        gsap.to(cursorFollowerRef.current, {
+          scale: 1,
+          backgroundColor: '#F9C80E',
+          duration: 0.3
+        });
+      });
+    });
+
+    document.addEventListener('mousemove', moveCursor);
+
+    // Existing animations
     gsap.from(featuresRef.current, {
       opacity: 0,
       y: 50,
@@ -144,11 +160,10 @@ const Home = () => {
         start: "top 80%",
         end: "top 50%",
         toggleActions: "play none none reverse",
-        scroller: scroller, // Set smooth-scrollbar as the scroller
+        scroller: scroller,
       },
     });
-  
-    // Animate How It Works Section
+
     gsap.from(howItWorksRef.current, {
       opacity: 0,
       y: 50,
@@ -158,11 +173,10 @@ const Home = () => {
         start: "top 80%",
         end: "top 50%",
         toggleActions: "play none none reverse",
-        scroller: scroller, // Set smooth-scrollbar as the scroller
+        scroller: scroller,
       },
     });
-  
-    // Animate Contact Section
+
     gsap.from(contactRef.current, {
       opacity: 0,
       y: 50,
@@ -172,11 +186,10 @@ const Home = () => {
         start: "top 80%",
         end: "top 50%",
         toggleActions: "play none none reverse",
-        scroller: scroller, // Set smooth-scrollbar as the scroller
+        scroller: scroller,
       },
     });
-  
-    // Animate Feature Cards with Stagger
+
     gsap.from(featuresRef.current.querySelectorAll(".feature-card"), {
       opacity: 0,
       y: 50,
@@ -187,26 +200,69 @@ const Home = () => {
         start: "top 80%",
         end: "top 50%",
         toggleActions: "play none none reverse",
-        scroller: scroller, // Set smooth-scrollbar as the scroller
+        scroller: scroller,
       },
     });
-  
-    // Refresh ScrollTrigger after setup
+
+    gsap.from(heroTextRef.current, {
+      opacity: 0,
+      y: 50,
+      duration: 1.5,
+      ease: "power3.out",
+    });
+
+    gsap.from(taxiRef.current, {
+      opacity: 0,
+      x: 100,
+      duration: 1.5,
+      ease: "bounce.out",
+      delay: 0.5,
+    });
+
+    gsap.to(taxiRef.current, {
+      y: -10,
+      repeat: -1,
+      yoyo: true,
+      duration: 2,
+      ease: "sine.inOut",
+    });
+
     ScrollTrigger.refresh();
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousemove', moveCursor);
+    };
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Custom Cursor Elements */}
+      <div
+        ref={cursorRef}
+        className="fixed w-2 h-2 bg-[#F9C80E] rounded-full pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
+      />
+      <div
+        ref={cursorFollowerRef}
+        className="fixed w-6 h-6 bg-[#F9C80E]/30 rounded-full pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
+      />
+
       {/* Hero Section */}
-      <div className="relative h-screen">
-        <BackgroundSlider />
-        <div className="relative h-full">
-          <div className="container mx-auto px-6 h-full flex flex-col justify-center items-center text-center">
-            <div className="max-w-4xl mb-12">
+      <div 
+        className="relative h-screen bg-cover bg-center"
+        style={{ 
+          backgroundImage: `url('https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3')`,
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        <div className="absolute inset-0 bg-black opacity-75" />
+        <div className="relative h-full flex items-center justify-center">
+          <div className="container mx-auto px-6 flex flex-col md:flex-row items-center">
+            <div ref={heroTextRef} className="max-w-3xl text-center md:text-left">
               <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
                 Your Premium Ride in Colombo City
               </h1>
-              <p className="text-xl text-gray-300 mb-12">
+              <p className="text-xl text-gray-300 mb-8">
                 Experience safe and comfortable travel with Mega City Cab. Book
                 your ride instantly and enjoy premium service.
               </p>
@@ -215,6 +271,14 @@ const Home = () => {
                   Book Now
                 </button>
               </Link>
+            </div>
+            <div className="hidden md:block ml-10">
+              <img
+                ref={taxiRef}
+                src="src\assets\main-slider-car-1-2.png"
+                alt="Taxi Car"
+                className="w-[450px] md:w-[500px]"
+              />
             </div>
           </div>
         </div>

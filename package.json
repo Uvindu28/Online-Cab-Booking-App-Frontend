@@ -16,6 +16,8 @@
     "cors": "^2.8.5",
     "framer-motion": "^12.4.10",
     "gsap": "^3.12.7",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.474.0",
     "megacityreact": "file:",
