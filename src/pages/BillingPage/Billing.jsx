@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { CheckCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
-import { LoadScript, Autocomplete, GoogleMap, DirectionsRenderer } from "@react-google-maps/api";
+import { LoadScript, Autocomplete, GoogleMap, Marker, Polyline } from "@react-google-maps/api";
 import "react-datepicker/dist/react-datepicker.css";
 import Header from "../../components/Header.jsx";
 import { useAuth } from "../../utils/AuthContext.jsx";
 import toast from "react-hot-toast";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyAe8qybKlyLJc7fAC3s-0NwUApOPYRILCs";
+const GOOGLE_MAPS_API_KEY = "AIzaSyCepX7Q1pxRlBbIKrpS-3LwcPxflCiE1Zs";
+// Update to use the correct libraries format for Places API New
 const libraries = ["places"];
 
 const COLOMBO_BOUNDS = {
@@ -68,15 +69,16 @@ const BillingPage = () => {
     seats: 0,
     pickup: "Colombo City Center",
     dropoff: "Bandaranaike Airport",
-    baseFare: car ? car.baseRate : 1500, // Use baseRate from car object
+    baseFare: car ? car.baseRate : 1500,
     distanceFare: 0,
-    tax: 25,     // Tax in LKR
+    tax: 25,
     total: 0,
     pickupCoords: [6.9271, 79.8612],
     dropoffCoords: [7.1806, 79.8846],
     distance: 0,
   });
-  const [directions, setDirections] = useState(null);
+  const [routePath, setRoutePath] = useState([]);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   const [pickupAutocomplete, setPickupAutocomplete] = useState(null);
   const [dropoffAutocomplete, setDropoffAutocomplete] = useState(null);
@@ -92,15 +94,15 @@ const BillingPage = () => {
         cabModel: car.model,
         licensePlate: car.licensePlate,
         seats: car.numberOfSeats,
-        baseFare: car.baseRate, // Set baseFare from car object
+        baseFare: car.baseRate,
       }));
     }
   }, [car]);
 
   useEffect(() => {
-    if (rideDetails.pickupCoords && rideDetails.dropoffCoords && window.google?.maps) {
+    if (rideDetails.pickupCoords && rideDetails.dropoffCoords) {
       const distance = getDistance(rideDetails.pickupCoords, rideDetails.dropoffCoords);
-      const distanceFareLKR = distance * 35; // 450 LKR per km
+      const distanceFareLKR = distance * 35;
       setRideDetails((prev) => ({
         ...prev,
         distance,
@@ -108,24 +110,130 @@ const BillingPage = () => {
         total: prev.baseFare + distanceFareLKR + prev.tax,
       }));
 
-      const directionsService = new window.google.maps.DirectionsService();
-      directionsService.route(
-        {
-          origin: { lat: rideDetails.pickupCoords[0], lng: rideDetails.pickupCoords[1] },
-          destination: { lat: rideDetails.dropoffCoords[0], lng: rideDetails.dropoffCoords[1] },
-          travelMode: window.google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === window.google.maps.DirectionsStatus.OK) {
-            setDirections(result);
-          } else {
-            console.error(`Directions request failed due to ${status}`);
-            setError("Failed to load route. Please try again.");
-          }
-        }
-      );
+      if (isMapLoaded && window.google?.maps) {
+        fetchRouteWithRoutesAPI();
+      }
     }
-  }, [rideDetails.pickupCoords, rideDetails.dropoffCoords]);
+  }, [rideDetails.pickupCoords, rideDetails.dropoffCoords, isMapLoaded]);
+
+  // Function to fetch route using the Routes API
+  const fetchRouteWithRoutesAPI = async () => {
+    if (!window.google?.maps) return;
+
+    try {
+      // Create origin and destination points
+      const origin = { lat: rideDetails.pickupCoords[0], lng: rideDetails.pickupCoords[1] };
+      const destination = { lat: rideDetails.dropoffCoords[0], lng: rideDetails.dropoffCoords[1] };
+
+      // Use Routes API via fetch instead of DirectionsService
+      const url = `https://routes.googleapis.com/directions/v2:computeRoutes`;
+      
+      const requestBody = {
+        origin: {
+          location: {
+            latLng: {
+              latitude: origin.lat,
+              longitude: origin.lng
+            }
+          }
+        },
+        destination: {
+          location: {
+            latLng: {
+              latitude: destination.lat,
+              longitude: destination.lng
+            }
+          }
+        },
+        travelMode: "DRIVE",
+        routingPreference: "TRAFFIC_AWARE",
+        computeAlternativeRoutes: false,
+        routeModifiers: {
+          avoidTolls: false,
+          avoidHighways: false,
+          avoidFerries: false
+        },
+        languageCode: "en-US",
+        units: "METRIC"
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+          'X-Goog-FieldMask': 'routes.polyline,routes.duration,routes.distanceMeters'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Routes API failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.routes && data.routes.length > 0) {
+        // Process the polyline from the response
+        const encodedPolyline = data.routes[0].polyline.encodedPolyline;
+        // Decode the polyline to get lat/lng points
+        const pathPoints = decodePolyline(encodedPolyline);
+        setRoutePath(pathPoints);
+      } else {
+        throw new Error('No routes returned from the API');
+      }
+    } catch (error) {
+      console.error('Error fetching route:', error);
+      setError('Failed to load route. Using direct path instead.');
+      
+      // Fallback: Create a simple straight line between points
+      const startPoint = { lat: rideDetails.pickupCoords[0], lng: rideDetails.pickupCoords[1] };
+      const endPoint = { lat: rideDetails.dropoffCoords[0], lng: rideDetails.dropoffCoords[1] };
+      setRoutePath([startPoint, endPoint]);
+    }
+  };
+
+  // Polyline decoder function
+  const decodePolyline = (encoded) => {
+    if (!encoded) return [];
+    
+    const poly = [];
+    let index = 0, lat = 0, lng = 0;
+
+    while (index < encoded.length) {
+      let b, shift = 0, result = 0;
+      
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      
+      const dlat = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+      
+      shift = 0;
+      result = 0;
+      
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      
+      const dlng = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+      
+      const point = {
+        lat: lat / 1e5,
+        lng: lng / 1e5
+      };
+      
+      poly.push(point);
+    }
+    
+    return poly;
+  };
 
   // Handle redirect to receipt page
   useEffect(() => {
@@ -152,7 +260,7 @@ const BillingPage = () => {
         };
         
         navigate("/receipt", { state: { bookingDetails } });
-      }, 3000); // Redirect after 3 seconds
+      }, 3000);
       
       setRedirectTimer(timer);
       
@@ -207,7 +315,7 @@ const BillingPage = () => {
       destination: rideDetails.dropoff,
       pickupDate: formattedDate,
       pickupTime: formattedTime,
-      totalAmount: rideDetails.total, // Total in LKR
+      totalAmount: rideDetails.total,
       driverRequired: driverRequired,
     };
 
@@ -240,7 +348,6 @@ const BillingPage = () => {
       const responseData = await response.json();
       setBookingResponse(responseData);
 
-      // Just check if a driver was assigned without fetching details
       if (driverRequired && responseData.driverId) {
         setDriverAssigned(true);
       }
@@ -302,9 +409,11 @@ const BillingPage = () => {
       googleMapsApiKey={GOOGLE_MAPS_API_KEY}
       libraries={libraries}
       loadingElement={<div className="text-center py-10 text-gray-500">Loading Google Maps...</div>}
-      onError={() =>
-        setError("Failed to load Google Maps. Please check your network or disable ad blockers.")
-      }
+      onLoad={() => setIsMapLoaded(true)}
+      onError={(error) => {
+        console.error("Google Maps loading error:", error);
+        setError("Failed to load Google Maps. Please check your network or disable ad blockers.");
+      }}
     >
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
         <Header />
@@ -532,12 +641,35 @@ const BillingPage = () => {
                 <div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-4">Route Preview</h3>
                   <GoogleMap
-                    mapContainerClassName="h-[600px] w-full rounded-xl shadow-md border border-gray-200"
+                    mapContainerClassName="h-[440px] w-full rounded-xl shadow-md border border-gray-200"
                     center={{ lat: rideDetails.pickupCoords[0], lng: rideDetails.pickupCoords[1] }}
                     zoom={10}
                     onLoad={(map) => (mapRef.current = map)}
                   >
-                    {directions && <DirectionsRenderer directions={directions} />}
+                    {/* Replace DirectionsRenderer with Markers and Polyline */}
+                    {rideDetails.pickupCoords && (
+                      <Marker
+                        position={{ lat: rideDetails.pickupCoords[0], lng: rideDetails.pickupCoords[1] }}
+                        label="A"
+                      />
+                    )}
+                    {rideDetails.dropoffCoords && (
+                      <Marker
+                        position={{ lat: rideDetails.dropoffCoords[0], lng: rideDetails.dropoffCoords[1] }}
+                        label="B"
+                      />
+                    )}
+                    {routePath.length > 0 && (
+                      <Polyline
+                        path={routePath}
+                        options={{
+                          strokeColor: "#4285F4",
+                          strokeOpacity: 0.8,
+                          strokeWeight: 5,
+                          geodesic: true,
+                        }}
+                      />
+                    )}
                   </GoogleMap>
                 </div>
               </div>
