@@ -1,16 +1,15 @@
-import { cloneElement } from "react";
+import { cloneElement, useState, useEffect } from "react";
 import {
   CalendarCheckIcon,
   ClockIcon,
   MapPinIcon,
   PhoneIcon,
   MailIcon,
-  StarIcon,
   DollarSignIcon,
   UserIcon,
   ChevronRightIcon,
+  XCircleIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../utils/AuthContext"; // Adjust the import path based on your file structure
 import { Link } from "react-router-dom";
@@ -20,6 +19,11 @@ const CustomerProfile = () => {
   const [bookingHistory, setBookingHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
 
   const { user } = useAuth(); // Get the authenticated user from context
 
@@ -73,31 +77,30 @@ const CustomerProfile = () => {
           address: customerData.address,
           avatar: imageResponse.data || `https://ui-avatars.com/api/?name=${customerData.name}&background=0A0A0A&color=fff&size=128`,
           stats: {
-            totalTrips: bookingsResponse.data.length, // Real data from backend
+            totalTrips: bookingsResponse.data.length,
             totalSpent: bookingsResponse.data
               .reduce((sum, booking) => sum + parseFloat(booking.totalAmount || 0), 0)
-              .toFixed(2), // Use totalAmount from Booking model
+              .toFixed(2),
             avgRating: bookingsResponse.data.length > 0
               ? (bookingsResponse.data.reduce((sum, booking) => sum + (booking.passengerRating || 0), 0) / bookingsResponse.data.length).toFixed(1)
-              : 0, // Use passengerRating from Booking model
+              : 0,
             lastRide: bookingsResponse.data.length > 0
-              ? new Date(bookingsResponse.data[0].pickupDate).toLocaleDateString() // Use pickupDate
+              ? new Date(bookingsResponse.data[0].pickupDate).toLocaleDateString()
               : "N/A",
           },
         };
 
         setCustomer(customerProfile);
 
-        // Map booking history from response using fields from the Booking model
         setBookingHistory(bookingsResponse.data.map(booking => ({
           id: booking.bookingId,
-          date: booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString() : "N/A", // Use pickupDate
-          from: booking.pickupLocation || "Unknown", // Use pickupLocation
-          to: booking.destination || "Unknown", // Use destination
-          amount: `$${parseFloat(booking.totalAmount || 0).toFixed(2)}`, // Use totalAmount
-          status: booking.status || "Unknown", // Use status
-          driver: booking.driverId ? "Assigned" : "N/A", // Use driverId to indicate assignment
-          rating: booking.passengerRating || null, // Use passengerRating
+          date: booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString() : "N/A",
+          from: booking.pickupLocation || "Unknown",
+          to: booking.destination || "Unknown",
+          amount: `Rs. ${parseFloat(booking.totalAmount || 0).toFixed(2)}`,
+          status: booking.status || "Unknown",
+          driver: booking.driverId ? "Assigned" : "N/A",
+          rating: booking.passengerRating || null,
         })));
 
       } catch (err) {
@@ -110,6 +113,63 @@ const CustomerProfile = () => {
 
     fetchCustomerData();
   }, [user]);
+
+  const handleCancelClick = (booking) => {
+    // Only allow cancellation for non-completed and non-cancelled bookings
+    if (booking.status !== "COMPLETED" && booking.status !== "CANCELLED") {
+      setSelectedBooking(booking);
+      setShowCancelModal(true);
+      setCancellationReason("");
+      setCancelError(null);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!selectedBooking || !cancellationReason.trim()) {
+      setCancelError("Please provide a reason for cancellation");
+      return;
+    }
+  
+    setCancelLoading(true);
+    setCancelError(null);
+  
+    try {
+      await axios.post(
+        `http://localhost:8080/auth/bookings/${selectedBooking.id}/cancel`,
+        {
+          reason: cancellationReason,
+          bookingId: selectedBooking.id
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+            "Content-Type": "application/json"
+          },
+        }
+      );
+  
+      // Update the booking status in local state
+      setBookingHistory(prevBookings => 
+        prevBookings.map(booking => 
+          booking.id === selectedBooking.id 
+            ? { ...booking, status: "CANCELLED" } 
+            : booking
+        )
+      );
+  
+      // Close the modal
+      setShowCancelModal(false);
+      
+      // Optional: Show success notification
+      alert("Booking cancelled successfully");
+      
+    } catch (err) {
+      setCancelError("Failed to cancel booking: " + (err.response?.data || err.message));
+      console.error(err);
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   if (!user) {
     return <div className="text-center p-8 text-red-600">Please log in to view your profile</div>;
@@ -188,7 +248,7 @@ const CustomerProfile = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
           { title: "Total Trips", value: customer.stats.totalTrips, icon: <CalendarCheckIcon /> },
-          { title: "Total Spent", value: `$${customer.stats.totalSpent}`, icon: <DollarSignIcon /> },
+          { title: "Total Spent", value: `Rs. ${customer.stats.totalSpent}`, icon: <DollarSignIcon /> },
         ].map((stat, index) => (
           <div
             key={index}
@@ -233,8 +293,8 @@ const CustomerProfile = () => {
                 <th className="text-left pb-4 font-semibold">To</th>
                 <th className="text-left pb-4 font-semibold">Driver</th>
                 <th className="text-left pb-4 font-semibold">Status</th>
-                <th className="text-left pb-4 font-semibold">Rating</th>
                 <th className="text-right pb-4 font-semibold">Amount</th>
+                <th className="text-center pb-4 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -259,20 +319,18 @@ const CustomerProfile = () => {
                   <td className="py-4">
                     <StatusBadge status={booking.status} />
                   </td>
-                  <td className="py-4">
-                    {booking.rating ? (
-                      <div className="flex items-center gap-1">
-                        <StarIcon className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                        <span className="text-sm text-gray-700 font-medium">
-                          {booking.rating}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-500 text-sm">-</span>
-                    )}
-                  </td>
                   <td className="py-4 text-right text-sm font-semibold text-gray-900">
                     {booking.amount}
+                  </td>
+                  <td className="py-4 text-center">
+                    {booking.status !== "COMPLETED" && booking.status !== "CANCELLED" && (
+                      <button
+                        onClick={() => handleCancelClick(booking)}
+                        className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors shadow-sm"
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -280,6 +338,51 @@ const CustomerProfile = () => {
           </table>
         </div>
       </div>
+
+      {/* Cancellation Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Cancel Booking</h3>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XCircleIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <p className="text-gray-700 mb-4">
+              Please provide a reason for cancelling booking #{selectedBooking?.id}
+            </p>
+            <div className="mb-4">
+              <textarea
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Enter cancellation reason"
+                className="w-full border border-yellow-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                rows={4}
+              ></textarea>
+              {cancelError && <p className="text-red-500 text-sm mt-1">{cancelError}</p>}
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCancelBooking}
+                disabled={cancelLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md disabled:opacity-50"
+              >
+                {cancelLoading ? "Processing..." : "Confirm Cancellation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -294,7 +397,7 @@ const StatusBadge = ({ status }) => {
       classes = "bg-yellow-100 text-yellow-700 border-yellow-300 shadow-sm";
       break;
     case "CANCELLED":
-      classes = "bg-gray-100 text-gray-700 border-gray-300 shadow-sm";
+      classes = "bg-red-100 text-red-700 border-red-300 shadow-sm";
       break;
     default:
       classes = "bg-gray-100 text-gray-700 border-gray-300 shadow-sm";

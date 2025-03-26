@@ -13,11 +13,10 @@ import DriverProfile from "./pages/DriverPage/DriverProfile.jsx";
 import ForgotPassword from "./components/ForgetPassword.jsx";
 import ResetPassword from "./components/RestPassword.jsx";
 import EditProfile from "./pages/CustomerPage/EditProfile.jsx";
-// import SmoothScroll from "./components/SmoothScroll.jsx"; // Import the SmoothScroll component
+import BookingReceiptPage from "./pages/BillingPage/BookingReceiptPage.jsx";
 
 function App() {
   return (
-    // <SmoothScroll> {/* Wrap everything inside SmoothScroll */}
       <div>
         <Routes>
           <Route
@@ -41,9 +40,9 @@ function App() {
           <Route path="/editProfile" element={<EditProfile />} />
           <Route path="/booking" element={<Booking />} />
           <Route path="/Billing" element={<BillingPage />} />
+          <Route path="/receipt" element={<BookingReceiptPage />} />
         </Routes>
       </div>
-    // </SmoothScroll>
   );
 }
 
